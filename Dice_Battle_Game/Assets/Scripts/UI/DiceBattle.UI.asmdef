@@ -3,6 +3,7 @@
     "rootNamespace": "DiceBattle.UI",
     "references": [
         "DiceBattle.Core",
+        "DiceBattle.AI",
         "DiceBattle.Managers",
         "Unity.InputSystem"
     ],

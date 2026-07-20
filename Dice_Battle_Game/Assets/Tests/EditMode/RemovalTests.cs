@@ -6,6 +6,35 @@ namespace DiceBattle.Tests
     public class RemovalTests
     {
         [Test]
+        public void Mutual_Removal_Placing_Normal_Die_Is_Also_Removed()
+        {
+            // 상호 소멸: 일반 주사위로 제거 시 배치 주사위도 사라진다.
+            // 롤: Start(P1)=1, P2=5, P1=5
+            var game = new DiceGame(new QueueDiceRoller(1, 5, 5));
+            game.Start(PlayerId.One);
+            game.PlacePrimary(0); // P1 특수1 → line0
+            game.PlacePrimary(1); // P2 5 → line1
+            var r = game.PlacePrimary(1); // P1 5 → line1, 상대 5 제거 + 내 5 소멸
+            Assert.IsTrue(r.RemovalOccurred);
+            Assert.AreEqual(0, game.State.Field(PlayerId.One)[1].Count, "배치 주사위도 소멸해야 한다.");
+            Assert.AreEqual(0, game.State.Field(PlayerId.Two)[1].Count, "상대 주사위 제거.");
+        }
+
+        [Test]
+        public void Special_Placing_Die_Survives_Mutual_Removal()
+        {
+            // 배치 주사위가 특수면 상대를 제거하되 자신은 남는다(기획서 9번).
+            // 선공 첫 주사위는 특수이므로, 상대 라인에 미리 일반 주사위를 두고 검증.
+            var g = new DiceGame(new QueueDiceRoller(3, 2));
+            g.Start(PlayerId.One); // P1 첫 손패=특수3
+            g.State.Field(PlayerId.Two)[0].Add(new Dice(3, false, PlayerId.Two)); // 상대 일반 3
+            var r = g.PlacePrimary(0); // 특수3 배치 → 상대 3 제거, 특수 생존
+            Assert.IsTrue(r.RemovalOccurred);
+            Assert.AreEqual(1, g.State.Field(PlayerId.One)[0].Count, "특수 배치 주사위는 생존.");
+            Assert.AreEqual(0, g.State.Field(PlayerId.Two)[0].Count, "상대 3 제거.");
+        }
+
+        [Test]
         public void Placing_Matching_Value_Removes_Opponent_And_Grants_Special_Extra()
         {
             // P1 선공 첫 주사위=3(특수). P1이 line0에 배치(제거 대상 없음) → 턴 종료.

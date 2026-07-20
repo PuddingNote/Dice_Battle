@@ -48,7 +48,9 @@ namespace DiceBattle.Core
 
         /// <summary>
         /// 이번 턴 기본 주사위를 "본인 필드"의 지정 라인에 배치한다(기획서 5번).
-        /// 배치 후 상대 같은 라인의 동일 숫자(특수 제외)를 모두 제거하고(기획서 6번),
+        /// 상대 같은 라인에 동일 숫자(특수 제외)가 있으면 상호 소멸한다(기획서 6번):
+        /// 상대의 동일 숫자 주사위가 모두 제거되고, "배치한 주사위"도 함께 제거된다
+        /// (배치 주사위가 특수라면 면역이라 그대로 배치된다 — 기획서 9번).
         /// 제거가 발생하면 특수 주사위를 추가로 굴려 대기 상태로 전환한다.
         /// </summary>
         public PlaceResult PlacePrimary(int lineIndex)
@@ -64,7 +66,6 @@ namespace DiceBattle.Core
                 throw new InvalidOperationException("선택한 라인이 가득 차 배치할 수 없다.");
 
             Dice die = State.PendingDice;
-            ownLine.Add(die);
             State.PendingDice = null;
 
             // 제거 판정: 상대의 같은 라인에서 동일 숫자(특수 제외) 전부 제거.
@@ -75,6 +76,10 @@ namespace DiceBattle.Core
 
             if (removed > 0)
             {
+                // 상호 소멸: 배치한 주사위도 사라진다. 단 특수 주사위는 면역이라 그대로 배치.
+                if (die.IsSpecial)
+                    ownLine.Add(die);
+
                 // 기획서 6번: 제거 직후 특수 주사위 추가 획득, 본인/상대 필드 배치 가능.
                 int value = _roller.Roll();
                 State.PendingDice = new Dice(value, isSpecial: true, owner: current);
@@ -82,6 +87,8 @@ namespace DiceBattle.Core
                 return new PlaceResult(removalOccurred: true, removedCount: removed, extraDicePending: true);
             }
 
+            // 제거 없음 → 정상 배치.
+            ownLine.Add(die);
             EndTurn();
             return new PlaceResult(removalOccurred: false, removedCount: 0, extraDicePending: false);
         }

@@ -7,43 +7,57 @@ namespace DiceBattle.Tests
 {
     public class AiStrategyTests
     {
-        [Test]
-        public void Heuristic_Prefers_Removal_Line()
+        /// <summary>테스트 편의: 해당 라인에 주사위들을 직접 배치.</summary>
+        private static void Put(GameState s, PlayerId p, int line, params int[] values)
         {
-            // 상대 line1 에 일반 5가 있고, 이번 주사위가 5라면 제거 가능한 line1 을 골라야 한다.
-            // 롤: Start(P1)=1, P2=5, P1=5
-            var game = new DiceGame(new QueueDiceRoller(1, 5, 5));
-            game.Start(PlayerId.One);
-            game.PlacePrimary(0); // P1 특수1 → line0
-            game.PlacePrimary(1); // P2 5 → line1
-            // 이제 P1 차례, 손패=5. 상대 line1 의 5를 제거할 수 있는 line1 을 선택해야 한다.
+            foreach (int v in values)
+                s.Field(p)[line].Add(new Dice(v, false, p));
+        }
+
+        private static GameState StateWithPending(int pendingValue, bool special = false)
+        {
+            var s = new GameState();
+            s.CurrentPlayer = PlayerId.One;
+            s.Phase = TurnPhase.AwaitingPrimaryPlacement;
+            s.PendingDice = new Dice(pendingValue, special, PlayerId.One);
+            return s;
+        }
+
+        [Test]
+        public void Heuristic_Removes_To_Flip_A_Losing_Line()
+        {
+            // 제거로 지던 라인을 뒤집을 수 있으면 제거를 선택해야 한다.
+            //   P1: line0=[5]  (다른 라인 비어 있음)
+            //   P2: line0=[6], line1=[6,6], line2=[6,6]
+            // 손패=6 을 line0 에 놓으면 상대 6 제거 → 상대 line0=0, 내 5가 남아 라인0 승리.
+            // (line1/2 는 18점이라 손패로 이길 수 없음)
+            var s = StateWithPending(6);
+            Put(s, PlayerId.One, 0, 5);
+            Put(s, PlayerId.Two, 0, 6);
+            Put(s, PlayerId.Two, 1, 6, 6);
+            Put(s, PlayerId.Two, 2, 6, 6);
+
             var ai = new HeuristicAiStrategy();
-            int line = ai.ChoosePrimaryLine(game.State, PlayerId.One);
-            Assert.AreEqual(1, line);
+            Assert.AreEqual(0, ai.ChoosePrimaryLine(s, PlayerId.One));
         }
 
         [Test]
         public void Heuristic_Forms_Double_When_It_Is_The_Only_Winning_Move()
         {
-            // 제거가 불가능하고, 더블을 만들어야만 라인을 이길 수 있는 상황.
-            // 최종 배치 직전 상태(P1 결정 손패=4):
+            // 제거 불가. 더블을 만들어야만 라인을 이길 수 있는 상황.
             //   P1: line0=[4], line1=[1], line2=[1]
             //   P2: line0=[6], line1=[6], line2=[6]
-            // line0 에 4를 더하면 [4,4]=12 로 6을 이겨 유일하게 승리 라인 확보 → line0 선택해야 한다.
-            // 롤: P1 first. [1,6,1,6,4,6,4]
-            var game = new DiceGame(new QueueDiceRoller(1, 6, 1, 6, 4, 6, 4));
-            game.Start(PlayerId.One);
-            game.PlacePrimary(1); // t1 P1 특수1 → line1
-            game.PlacePrimary(0); // t2 P2 6 → line0
-            game.PlacePrimary(2); // t3 P1 1 → line2
-            game.PlacePrimary(1); // t4 P2 6 → line1
-            game.PlacePrimary(0); // t5 P1 4 → line0
-            game.PlacePrimary(2); // t6 P2 6 → line2
+            // line0 에 4 → [4,4]=12 로 6을 이겨 유일한 승리 라인.
+            var s = StateWithPending(4);
+            Put(s, PlayerId.One, 0, 4);
+            Put(s, PlayerId.One, 1, 1);
+            Put(s, PlayerId.One, 2, 1);
+            Put(s, PlayerId.Two, 0, 6);
+            Put(s, PlayerId.Two, 1, 6);
+            Put(s, PlayerId.Two, 2, 6);
 
-            // t7 P1 결정, 손패=4. 제거 불가(상대는 6뿐).
             var ai = new HeuristicAiStrategy();
-            int line = ai.ChoosePrimaryLine(game.State, PlayerId.One);
-            Assert.AreEqual(0, line);
+            Assert.AreEqual(0, ai.ChoosePrimaryLine(s, PlayerId.One));
         }
 
         [Test]

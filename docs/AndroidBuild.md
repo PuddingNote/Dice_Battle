@@ -23,8 +23,10 @@ Unity 6000.3.12f1 / URP 모바일 템플릿 기준. 실제 값 변경은 Unity E
 > 출시 시점의 구글 요구 최소 Target API를 확인해 맞춘다.
 
 ## 3. 화면/입력
-- **Orientation**: 세로 고정(Portrait) 권장 (3x3 마주보는 보드가 세로에 적합).
-  `Resolution and Presentation > Default Orientation = Portrait`.
+- **Orientation**: **가로 고정(Landscape)** (좌/우로 마주보는 필드 배치).
+  `Resolution and Presentation > Default Orientation = Landscape Left`
+  (또는 Auto Rotation에서 Landscape Left/Right만 허용).
+  에디터 Game 뷰도 가로 종횡비(예: 1920x1080)로 확인.
 - 입력: Input System 1.19.0 사용. Active Input Handling이
   `Input System Package (New)` 또는 `Both`인지 확인.
 

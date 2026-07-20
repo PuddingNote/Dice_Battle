@@ -1,0 +1,18 @@
+{
+    "name": "DiceBattle.UI",
+    "rootNamespace": "DiceBattle.UI",
+    "references": [
+        "DiceBattle.Core",
+        "DiceBattle.Managers",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

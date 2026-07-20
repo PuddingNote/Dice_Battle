@@ -1,0 +1,17 @@
+{
+    "name": "DiceBattle.Managers",
+    "rootNamespace": "DiceBattle.Managers",
+    "references": [
+        "DiceBattle.Core",
+        "DiceBattle.AI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

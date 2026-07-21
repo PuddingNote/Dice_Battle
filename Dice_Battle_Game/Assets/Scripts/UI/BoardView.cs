@@ -17,17 +17,27 @@ namespace DiceBattle.UI
         private PlayerId _humanId;
         private PlayerId _aiId;
 
+        private GameObject _root;
         private CellView _handCell;
         private Text _handLabel;
         private Text _statusText;
+        private Text _levelText;
 
         private GameObject _resultOverlay;
         private Text _resultText;
         private Button _restartButton;
+        private Button _menuButton;
 
         /// <summary>라인 탭: (필드, 라인인덱스).</summary>
         public event Action<PlayerId, int> LineClicked;
         public event Action RestartClicked;
+        public event Action MenuClicked;
+
+        /// <summary>보드 전체 표시/숨김.</summary>
+        public void SetVisible(bool visible)
+        {
+            if (_root != null) _root.SetActive(visible);
+        }
 
         public void Build(RectTransform root, PlayerId humanId)
         {
@@ -35,6 +45,7 @@ namespace DiceBattle.UI
             _aiId = humanId.Other();
 
             var bg = UiFactory.CreateStretchPanel("BoardRoot", root, UiTheme.Background);
+            _root = bg.gameObject;
             // 가로형: [내 필드] [중앙(상태/획득 주사위)] [AI 필드]
             UiFactory.AddHorizontalLayout(bg.gameObject, 12, new RectOffset(28, 28, 24, 24));
 
@@ -49,7 +60,7 @@ namespace DiceBattle.UI
             _rightField = new FieldView(bg.transform, _aiId, UiTheme.OpponentPanel, "상대 (AI)", scoreInnerLeft: true);
             _rightField.LineClicked += (f, i) => LineClicked?.Invoke(f, i);
 
-            BuildResultOverlay(root);
+            BuildResultOverlay(bg.rectTransform);
         }
 
         private void BuildCenter(Transform parent)
@@ -57,6 +68,10 @@ namespace DiceBattle.UI
             var center = UiFactory.CreatePanel("Center", parent, UiTheme.CenterPanel);
             UiFactory.AddVerticalLayout(center.gameObject, 20, new RectOffset(20, 20, 40, 40));
             UiFactory.SetFlexible(center.gameObject);
+
+            _levelText = UiFactory.CreateText("Level", center.transform, "",
+                UiTheme.ScoreFontSize, UiTheme.WinText);
+            UiFactory.SetSize(_levelText.gameObject, 260f, 56f);
 
             _statusText = UiFactory.CreateText("Status", center.transform, "",
                 UiTheme.StatusFontSize, UiTheme.Label, TextAnchor.UpperCenter);
@@ -73,7 +88,10 @@ namespace DiceBattle.UI
         private void BuildResultOverlay(RectTransform root)
         {
             var overlay = UiFactory.CreateStretchPanel("ResultOverlay", root, UiTheme.Overlay);
-            UiFactory.AddVerticalLayout(overlay.gameObject, 40, new RectOffset(60, 60, 200, 200));
+            // 부모(BoardRoot)의 가로 레이아웃에 눌려 잘리지 않도록 레이아웃 제외 + 전체 화면.
+            UiFactory.IgnoreLayout(overlay.gameObject);
+            UiFactory.Stretch(overlay.rectTransform);
+            UiFactory.AddVerticalLayout(overlay.gameObject, 40, new RectOffset(60, 60, 120, 120));
             _resultOverlay = overlay.gameObject;
 
             _resultText = UiFactory.CreateText("ResultText", overlay.transform, "",
@@ -81,12 +99,23 @@ namespace DiceBattle.UI
             _resultText.horizontalOverflow = HorizontalWrapMode.Wrap;
             UiFactory.SetSize(_resultText.gameObject, 900f, 700f);
 
-            _restartButton = UiFactory.CreateButton("RestartButton", overlay.transform, UiTheme.Button);
-            UiFactory.SetSize(_restartButton.gameObject, 480f, 130f);
-            var btnText = UiFactory.CreateText("Label", _restartButton.transform, "다시 하기",
+            var buttonRow = UiFactory.CreateRect("Buttons", overlay.transform);
+            UiFactory.AddHorizontalLayout(buttonRow.gameObject, 40, new RectOffset(0, 0, 0, 0));
+            UiFactory.SetSize(buttonRow.gameObject, 900f, 150f);
+
+            _restartButton = UiFactory.CreateButton("RestartButton", buttonRow.transform, UiTheme.Button);
+            UiFactory.SetSize(_restartButton.gameObject, 400f, 130f);
+            var restartText = UiFactory.CreateText("Label", _restartButton.transform, "다시 하기",
                 UiTheme.StatusFontSize, Color.white);
-            UiFactory.Stretch(btnText.rectTransform);
+            UiFactory.Stretch(restartText.rectTransform);
             _restartButton.onClick.AddListener(() => RestartClicked?.Invoke());
+
+            _menuButton = UiFactory.CreateButton("MenuButton", buttonRow.transform, UiTheme.CenterPanel);
+            UiFactory.SetSize(_menuButton.gameObject, 400f, 130f);
+            var menuText = UiFactory.CreateText("Label", _menuButton.transform, "메뉴로",
+                UiTheme.StatusFontSize, Color.white);
+            UiFactory.Stretch(menuText.rectTransform);
+            _menuButton.onClick.AddListener(() => MenuClicked?.Invoke());
 
             _resultOverlay.SetActive(false);
         }
@@ -110,6 +139,8 @@ namespace DiceBattle.UI
         }
 
         public void SetStatus(string message) => _statusText.text = message;
+
+        public void SetLevelInfo(int level) => _levelText.text = $"AI 난이도  Lv{level}";
 
         // ---- 하이라이트 ----
 
@@ -189,7 +220,7 @@ namespace DiceBattle.UI
 
         // ---- 결과 ----
 
-        public void ShowResult(MatchOutcome outcome)
+        public void ShowResult(MatchOutcome outcome, string scoreLine)
         {
             string headline;
             if (outcome.IsDraw) headline = "무승부";
@@ -204,8 +235,7 @@ namespace DiceBattle.UI
                 lines += $"라인 {i + 1}: {r}\n";
             }
 
-            _resultText.text = $"{headline}\n\n{lines}\n(내 라인 승: " +
-                $"{(_humanId == PlayerId.One ? outcome.PlayerOneLineWins : outcome.PlayerTwoLineWins)})";
+            _resultText.text = $"{headline}\n\n{lines}\n{scoreLine}";
             _resultOverlay.SetActive(true);
         }
 

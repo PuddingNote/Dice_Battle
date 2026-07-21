@@ -2,33 +2,24 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
-using DiceBattle.Core;
 
 namespace DiceBattle.UI
 {
     /// <summary>
     /// 런타임 진입점. 빈 씬에 이 컴포넌트를 가진 GameObject 하나만 두고 Play 하면
-    /// Canvas/EventSystem/보드/컨트롤러를 코드로 생성해 대전이 시작된다.
+    /// Canvas/EventSystem/GameManager(메뉴↔게임)를 코드로 생성한다.
     /// </summary>
     public sealed class GameBootstrap : MonoBehaviour
     {
-        [Tooltip("체크 시 규칙기반(보통), 해제 시 랜덤(낮음) AI")]
-        public bool useHeuristicAi = true;
-
         private void Start()
         {
             Canvas canvas = CreateCanvas();
             EnsureEventSystem();
 
-            var boardGo = new GameObject("BoardView");
-            boardGo.transform.SetParent(canvas.transform, false);
-            var board = boardGo.AddComponent<BoardView>();
-            board.Build(canvas.GetComponent<RectTransform>(), PlayerId.One);
-
-            var controllerGo = new GameObject("GameController");
-            controllerGo.transform.SetParent(transform, false);
-            var controller = controllerGo.AddComponent<GameController>();
-            controller.Init(board, useHeuristicAi);
+            var gmGo = new GameObject("GameManager");
+            gmGo.transform.SetParent(transform, false);
+            var gm = gmGo.AddComponent<GameManager>();
+            gm.Init(canvas.GetComponent<RectTransform>());
         }
 
         private static Canvas CreateCanvas()

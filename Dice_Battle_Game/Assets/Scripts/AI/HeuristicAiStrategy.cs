@@ -18,6 +18,31 @@ namespace DiceBattle.AI
         private const double SacrificePenalty = 8.0;
 
         public int ChoosePrimaryLine(GameState state, PlayerId me)
+            => PickPrimary(state, me, best: true);
+
+        /// <summary>일부러 가장 나쁜 라인을 고른다(하위 난이도용).</summary>
+        public int WorstPrimaryLine(GameState state, PlayerId me)
+            => PickPrimary(state, me, best: false);
+
+        private int PickPrimary(GameState state, PlayerId me, bool best)
+        {
+            double[] scores = ScorePrimaryLines(state, me);
+            int pick = -1;
+            double bestVal = best ? double.NegativeInfinity : double.PositiveInfinity;
+            for (int i = 0; i < scores.Length; i++)
+            {
+                if (double.IsNaN(scores[i])) continue; // 배치 불가 라인
+                if (best ? scores[i] > bestVal : scores[i] < bestVal)
+                {
+                    bestVal = scores[i];
+                    pick = i;
+                }
+            }
+            return pick;
+        }
+
+        /// <summary>각 라인 배치 점수(배치 불가 라인은 NaN).</summary>
+        private double[] ScorePrimaryLines(GameState state, PlayerId me)
         {
             int v = state.PendingDice.Value;
             bool special = state.PendingDice.IsSpecial;
@@ -27,22 +52,16 @@ namespace DiceBattle.AI
 
             int sacrifice = WorstLine(myField, oppField);
 
-            int bestLine = -1;
-            double bestScore = double.NegativeInfinity;
-
+            var scores = new double[Field.LineCount];
             for (int i = 0; i < Field.LineCount; i++)
             {
-                if (!myField[i].HasSpace) continue;
+                if (!myField[i].HasSpace) { scores[i] = double.NaN; continue; }
 
                 double score = EvaluatePrimary(state, me, opp, i, v, special);
                 if (i == sacrifice) score -= SacrificePenalty; // 포기 라인 투자 억제
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    bestLine = i;
-                }
+                scores[i] = score;
             }
-            return bestLine;
+            return scores;
         }
 
         private static void SortDescending(int[] a)

@@ -142,6 +142,15 @@ namespace DiceBattle.UI
             return le;
         }
 
+        /// <summary>부모의 레이아웃 그룹 제어에서 제외한다(전체 화면 오버레이 등).</summary>
+        public static LayoutElement IgnoreLayout(GameObject go)
+        {
+            var le = go.GetComponent<LayoutElement>();
+            if (le == null) le = go.AddComponent<LayoutElement>();
+            le.ignoreLayout = true;
+            return le;
+        }
+
         /// <summary>가로/세로 모두 부모를 따라 늘어나게 한다(중앙 유연 열).</summary>
         public static LayoutElement SetFlexible(GameObject go)
         {

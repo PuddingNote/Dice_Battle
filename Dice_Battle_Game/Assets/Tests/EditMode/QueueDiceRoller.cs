@@ -19,6 +19,6 @@ namespace DiceBattle.Tests
             _values = new Queue<int>(values ?? Array.Empty<int>());
         }
 
-        public int Roll() => _values.Count > 0 ? _values.Dequeue() : DefaultValue;
+        public int Roll(PlayerId player) => _values.Count > 0 ? _values.Dequeue() : DefaultValue;
     }
 }

@@ -40,7 +40,7 @@ namespace DiceBattle.Core
             State.FirstPlayer = firstPlayer;
             State.CurrentPlayer = firstPlayer;
 
-            int value = _roller.Roll();
+            int value = _roller.Roll(firstPlayer);
             // 선공 첫 주사위는 특수 주사위로 생성.
             State.PendingDice = new Dice(value, isSpecial: true, owner: firstPlayer);
             State.Phase = TurnPhase.AwaitingPrimaryPlacement;
@@ -81,7 +81,7 @@ namespace DiceBattle.Core
                     ownLine.Add(die);
 
                 // 기획서 6번: 제거 직후 특수 주사위 추가 획득, 본인/상대 필드 배치 가능.
-                int value = _roller.Roll();
+                int value = _roller.Roll(current);
                 State.PendingDice = new Dice(value, isSpecial: true, owner: current);
                 State.Phase = TurnPhase.AwaitingExtraPlacement;
                 return new PlaceResult(removalOccurred: true, removedCount: removed, extraDicePending: true);
@@ -130,7 +130,7 @@ namespace DiceBattle.Core
             }
 
             State.CurrentPlayer = next.Value;
-            int value = _roller.Roll();
+            int value = _roller.Roll(next.Value);
             // 일반 턴의 기본 주사위는 특수 주사위가 아니다.
             State.PendingDice = new Dice(value, isSpecial: false, owner: next.Value);
             State.Phase = TurnPhase.AwaitingPrimaryPlacement;

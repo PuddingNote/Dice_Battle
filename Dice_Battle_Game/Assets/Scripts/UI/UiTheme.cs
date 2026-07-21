@@ -30,8 +30,8 @@ namespace DiceBattle.UI
         public static readonly Color WinText = new Color(0.45f, 0.85f, 0.5f, 1f);
         public static readonly Color LoseText = new Color(0.9f, 0.45f, 0.45f, 1f);
 
-        // 결과 오버레이
-        public static readonly Color Overlay = new Color(0f, 0f, 0f, 0.78f);
+        // 결과 오버레이 (검정 50% 반투명 — 게임 화면이 뒤로 비침)
+        public static readonly Color Overlay = new Color(0f, 0f, 0f, 0.5f);
         public static readonly Color Button = new Color(0.25f, 0.45f, 0.85f, 1f);
 
         // 치수(레퍼런스 해상도 1920x1080 가로형 기준)

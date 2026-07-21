@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using DiceBattle.Core;
@@ -6,50 +7,61 @@ using DiceBattle.AI;
 namespace DiceBattle.UI
 {
     /// <summary>
-    /// Core 규칙 엔진 + AI + BoardView 를 연결해 사람(P1) vs AI(P2) 대전을 진행한다.
-    /// (Phase 3: 최소 연결/플레이 루프. Phase 4에서 메뉴/난이도/선공선택 등으로 확장 예정)
+    /// Core 규칙 엔진 + 난이도 AI + BoardView 를 연결해 사람(P1) vs AI(P2) 대전을 진행한다.
+    /// 선공은 매 판 랜덤, AI는 난이도 레벨(1~5)로 동작한다.
     /// </summary>
     public sealed class GameController : MonoBehaviour
     {
         private enum InputMode { None, Primary, Extra }
 
         private BoardView _board;
-        private bool _useHeuristic = true;
-
         private DiceGame _game;
         private IAiStrategy _ai;
         private InputMode _mode = InputMode.None;
+        private int _level = 3;
 
         private readonly PlayerId _human = PlayerId.One;
+        private readonly System.Random _rng = new System.Random();
         private PlayerId Ai => _human.Other();
 
         private const float AiStepDelay = 0.6f;
 
-        public void Init(BoardView board, bool useHeuristic)
+        /// <summary>결과 화면에서 "메뉴로" 선택 시 발생.</summary>
+        public event Action MenuRequested;
+
+        /// <summary>한 판 종료 시 결과를 전달(점수/등급 갱신용).</summary>
+        public event Action<MatchOutcome> MatchFinished;
+
+        public void Init(BoardView board)
         {
             _board = board;
-            _useHeuristic = useHeuristic;
             _board.LineClicked += OnLineClicked;
             _board.RestartClicked += OnRestart;
-            StartMatch();
+            _board.MenuClicked += () => MenuRequested?.Invoke();
         }
 
-        private void StartMatch()
+        /// <summary>지정 난이도로 새 대전 시작(선공 랜덤).</summary>
+        public void StartMatch(int level)
         {
+            _level = level;
             StopAllCoroutines();
             _mode = InputMode.None;
             _board.HideResult();
 
-            _game = new DiceGame(new RandomDiceRoller());
-            _ai = _useHeuristic ? new HeuristicAiStrategy() : (IAiStrategy)new RandomAiStrategy();
+            // AI(P2)만 난이도 가중 주사위, 사람은 공정.
+            _game = new DiceGame(new DifficultyDiceRoller(Ai, level));
+            _ai = new LeveledAiStrategy(level);
 
-            // 사람이 선공 → 첫 주사위는 특수(기획서 9번).
-            _game.Start(_human);
+            _board.SetLevelInfo(level);
+
+            // 선공 랜덤 → 선공의 첫 주사위는 특수(기획서 9번).
+            PlayerId first = _rng.Next(2) == 0 ? PlayerId.One : PlayerId.Two;
+            _game.Start(first);
             _board.Render(_game.State);
             BeginTurn();
         }
 
-        private void OnRestart() => StartMatch();
+        private void OnRestart() => StartMatch(_level);
 
         private void BeginTurn()
         {
@@ -59,7 +71,7 @@ namespace DiceBattle.UI
                 _mode = InputMode.None;
                 _board.ClearHighlights();
                 _board.SetStatus("게임 종료");
-                _board.ShowResult(_game.Outcome.Value);
+                MatchFinished?.Invoke(_game.Outcome.Value); // 점수 갱신 후 GameManager가 결과창 표시
                 return;
             }
 

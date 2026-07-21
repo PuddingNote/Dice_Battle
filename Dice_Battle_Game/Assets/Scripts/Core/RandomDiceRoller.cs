@@ -14,6 +14,6 @@ namespace DiceBattle.Core
             _rng = rng ?? throw new ArgumentNullException(nameof(rng));
         }
 
-        public int Roll() => _rng.Next(Dice.MinValue, Dice.MaxValue + 1);
+        public int Roll(PlayerId player) => _rng.Next(Dice.MinValue, Dice.MaxValue + 1);
     }
 }

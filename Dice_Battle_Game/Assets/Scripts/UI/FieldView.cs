@@ -18,6 +18,7 @@ namespace DiceBattle.UI
             Owner = owner;
 
             var panel = UiFactory.CreatePanel($"Field_{owner}", parent, panelColor);
+            UiSkin.Apply(panel, UiSkin.FieldPanel, panelColor); // 스킨 필드 프레임(있으면), 색은 틴트
             var layout = UiFactory.AddVerticalLayout(panel.gameObject, 12, new RectOffset(16, 16, 20, 20),
                 TextAnchor.UpperCenter);
             layout.childForceExpandHeight = false; // 행은 자연 높이로 상단 정렬

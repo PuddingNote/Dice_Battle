@@ -45,6 +45,7 @@ namespace DiceBattle.UI
             _aiId = humanId.Other();
 
             var bg = UiFactory.CreateStretchPanel("BoardRoot", root, UiTheme.Background);
+            UiSkin.Apply(bg, UiSkin.ScreenBackground, UiTheme.Background);
             _root = bg.gameObject;
             // 가로형: [내 필드] [중앙(상태/획득 주사위)] [AI 필드]
             UiFactory.AddHorizontalLayout(bg.gameObject, 12, new RectOffset(28, 28, 24, 24));
@@ -66,6 +67,7 @@ namespace DiceBattle.UI
         private void BuildCenter(Transform parent)
         {
             var center = UiFactory.CreatePanel("Center", parent, UiTheme.CenterPanel);
+            UiSkin.Apply(center, UiSkin.CenterPanel, UiTheme.CenterPanel);
             UiFactory.AddVerticalLayout(center.gameObject, 20, new RectOffset(20, 20, 40, 40));
             UiFactory.SetFlexible(center.gameObject);
 

@@ -23,6 +23,7 @@ namespace DiceBattle.UI
         public void Build(RectTransform root)
         {
             var bg = UiFactory.CreateStretchPanel("MenuRoot", root, UiTheme.Background);
+            UiSkin.Apply(bg, UiSkin.ScreenBackground, UiTheme.Background);
             _root = bg.gameObject;
             UiFactory.AddVerticalLayout(bg.gameObject, 32, new RectOffset(80, 80, 70, 70));
 

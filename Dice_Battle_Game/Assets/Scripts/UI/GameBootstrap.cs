@@ -11,8 +11,13 @@ namespace DiceBattle.UI
     /// </summary>
     public sealed class GameBootstrap : MonoBehaviour
     {
+        [Tooltip("선택: UI 스킨 에셋. 비우면 기본 단색 UI로 동작한다.")]
+        [SerializeField] private UiSkin skin;
+
         private void Start()
         {
+            UiSkin.Active = skin; // 스킨 지정 시 스프라이트 적용, null이면 단색 폴백
+
             Canvas canvas = CreateCanvas();
             EnsureEventSystem();
 

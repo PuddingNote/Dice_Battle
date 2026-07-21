@@ -8,9 +8,11 @@ namespace DiceBattle.UI
     {
         private static Font _font;
 
-        /// <summary>Unity 6 내장 런타임 폰트(구 Arial 대체).</summary>
+        /// <summary>스킨 폰트가 있으면 그것을, 없으면 Unity 6 내장 런타임 폰트(구 Arial 대체).</summary>
         public static Font GetFont()
         {
+            var skinFont = UiSkin.ActiveFont;
+            if (skinFont != null) return skinFont;
             if (_font == null)
                 _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             return _font;
@@ -59,6 +61,7 @@ namespace DiceBattle.UI
         public static Button CreateButton(string name, Transform parent, Color color)
         {
             var img = CreatePanel(name, parent, color);
+            UiSkin.Apply(img, UiSkin.Button, color); // 스킨 버튼 스프라이트(있으면)
             var btn = img.gameObject.AddComponent<Button>();
             btn.targetGraphic = img;
             return btn;

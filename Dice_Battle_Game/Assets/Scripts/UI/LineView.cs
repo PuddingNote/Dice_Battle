@@ -51,6 +51,7 @@ namespace DiceBattle.UI
             }
 
             _button.onClick.AddListener(() => Clicked?.Invoke(Field, Index));
+            ClearHighlight();
         }
 
         private void CreateScoreLabel(Transform parent)
@@ -106,13 +107,16 @@ namespace DiceBattle.UI
         public void SetSelectable(bool selectable)
         {
             _button.interactable = selectable;
-            _bg.color = selectable ? UiTheme.LineHighlight : UiTheme.LineNormal;
+            if (selectable)
+                UiSkin.Apply(_bg, UiSkin.LineHighlight, UiTheme.LineHighlight);
+            else
+                UiSkin.Apply(_bg, UiSkin.LineNormal, UiTheme.LineNormal);
         }
 
         public void ClearHighlight()
         {
             _button.interactable = false;
-            _bg.color = UiTheme.LineNormal;
+            UiSkin.Apply(_bg, UiSkin.LineNormal, UiTheme.LineNormal);
         }
     }
 }

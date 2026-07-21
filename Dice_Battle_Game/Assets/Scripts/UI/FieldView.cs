@@ -20,8 +20,8 @@ namespace DiceBattle.UI
             var panel = UiFactory.CreatePanel($"Field_{owner}", parent, panelColor);
             UiSkin.Apply(panel, UiSkin.FieldPanel, panelColor); // 스킨 필드 프레임(있으면), 색은 틴트
             var layout = UiFactory.AddVerticalLayout(panel.gameObject, 12, new RectOffset(16, 16, 20, 20),
-                TextAnchor.UpperCenter);
-            layout.childForceExpandHeight = false; // 행은 자연 높이로 상단 정렬
+                TextAnchor.MiddleCenter);
+            layout.childForceExpandHeight = false; // 행은 자연 높이, 세로 중앙 정렬(넓은 화면에서 쏠림 방지)
             UiFactory.SetPreferredWidth(panel.gameObject, UiTheme.FieldWidth);
 
             var header = UiFactory.CreateText("Title", panel.transform, title, UiTheme.ScoreFontSize, UiTheme.LabelDim);

@@ -40,6 +40,8 @@ namespace DiceBattle.UI
         public const float CellSize = 150f;
         public const float CellSpacing = 14f;
         public const float FieldWidth = 640f;   // 한 필드(3칸 + 점수) 열 너비
+        public const int RootPadding = 28;      // 보드 루트 좌우 여백
+        public const int RootSpacing = 12;      // 필드/중앙 사이 간격
         public const int DiceFontSize = 72;
         public const int ScoreFontSize = 40;
         public const int StatusFontSize = 40;

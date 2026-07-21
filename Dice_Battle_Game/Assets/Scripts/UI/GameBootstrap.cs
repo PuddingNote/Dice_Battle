@@ -20,11 +20,19 @@ namespace DiceBattle.UI
 
             Canvas canvas = CreateCanvas();
             EnsureEventSystem();
+            var canvasRect = canvas.GetComponent<RectTransform>();
+
+            // 비율이 다른 화면에서 남는 영역을 채울 검은 배경(레터박스/필러박스).
+            var bars = UiFactory.CreateStretchPanel("Letterbox", canvasRect, Color.black);
+            bars.raycastTarget = false;
+
+            // 고정 1920x1080 컨텐츠(가운데). LetterboxScaler가 화면에 맞춰 균등 스케일.
+            RectTransform content = CreateContent(canvasRect);
 
             var gmGo = new GameObject("GameManager");
             gmGo.transform.SetParent(transform, false);
             var gm = gmGo.AddComponent<GameManager>();
-            gm.Init(canvas.GetComponent<RectTransform>());
+            gm.Init(content);
         }
 
         private static Canvas CreateCanvas()
@@ -33,14 +41,28 @@ namespace DiceBattle.UI
             var canvas = go.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
 
+            // 실제 화면 픽셀 기준. 스케일은 LetterboxScaler가 컨텐츠 단위로 직접 처리.
             var scaler = go.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(UiTheme.ReferenceWidth, UiTheme.ReferenceHeight);
-            // 가로형: 세로(높이) 기준으로 스케일해 3행 필드가 항상 들어오게 한다.
-            scaler.matchWidthOrHeight = 1f;
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+            scaler.scaleFactor = 1f;
 
             go.AddComponent<GraphicRaycaster>();
             return canvas;
+        }
+
+        /// <summary>화면 중앙에 고정 1920x1080 컨텐츠 루트를 만든다(균등 스케일용).</summary>
+        private static RectTransform CreateContent(RectTransform parent)
+        {
+            var go = new GameObject("Content", typeof(RectTransform));
+            var rt = go.GetComponent<RectTransform>();
+            rt.SetParent(parent, false);
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(UiTheme.ReferenceWidth, UiTheme.ReferenceHeight);
+            rt.anchoredPosition = Vector2.zero;
+            go.AddComponent<LetterboxScaler>();
+            return rt;
         }
 
         private static void EnsureEventSystem()

@@ -48,7 +48,8 @@ namespace DiceBattle.UI
             UiSkin.Apply(bg, UiSkin.ScreenBackground, UiTheme.Background);
             _root = bg.gameObject;
             // 가로형: [내 필드] [중앙(상태/획득 주사위)] [AI 필드]
-            UiFactory.AddHorizontalLayout(bg.gameObject, 12, new RectOffset(28, 28, 24, 24));
+            UiFactory.AddHorizontalLayout(bg.gameObject, UiTheme.RootSpacing,
+                new RectOffset(UiTheme.RootPadding, UiTheme.RootPadding, 24, 24));
 
             // 좌측: 내 필드 (점수는 우측=내측)
             _leftField = new FieldView(bg.transform, _humanId, UiTheme.PlayerPanel, "나", scoreInnerLeft: false);
@@ -69,7 +70,11 @@ namespace DiceBattle.UI
             var center = UiFactory.CreatePanel("Center", parent, UiTheme.CenterPanel);
             UiSkin.Apply(center, UiSkin.CenterPanel, UiTheme.CenterPanel);
             UiFactory.AddVerticalLayout(center.gameObject, 20, new RectOffset(20, 20, 40, 40));
-            UiFactory.SetFlexible(center.gameObject);
+            // 중앙 패널을 "고정 폭"으로 → 상태 텍스트 길이와 무관하게 배치가 항상 동일.
+            // (전체 폭 - 필드2개 - 좌우여백 - 간격2개)
+            float centerWidth = UiTheme.ReferenceWidth - 2f * UiTheme.FieldWidth
+                                - UiTheme.RootPadding * 2f - UiTheme.RootSpacing * 2f;
+            UiFactory.SetPreferredWidth(center.gameObject, centerWidth);
 
             _levelText = UiFactory.CreateText("Level", center.transform, "",
                 UiTheme.ScoreFontSize, UiTheme.WinText);

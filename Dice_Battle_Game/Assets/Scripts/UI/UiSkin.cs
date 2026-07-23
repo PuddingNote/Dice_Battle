@@ -40,6 +40,9 @@ namespace DiceBattle.UI
         [Header("버튼")]
         public Sprite button;
 
+        [Header("주사위 트레이(굴림판)")]
+        public Sprite tray;
+
         public Sprite DiceFace(int value)
         {
             if (diceFaces != null && diceFaces.Length == 6 && value >= 1 && value <= 6)
@@ -57,6 +60,7 @@ namespace DiceBattle.UI
         public static Sprite CellFilled => Active != null ? Active.cellFilled : null;
         public static Sprite CellSpecial => Active != null ? Active.cellSpecial : null;
         public static Sprite Button => Active != null ? Active.button : null;
+        public static Sprite Tray => Active != null ? Active.tray : null;
         public static Sprite Face(int value) => Active != null ? Active.DiceFace(value) : null;
         public static Font ActiveFont => Active != null ? Active.font : null;
 

@@ -7,33 +7,30 @@ using DiceBattle.Core;
 namespace DiceBattle.UI
 {
     /// <summary>
-    /// 보드 전체 뷰(마주보는 3x3 필드 2개 + 획득 주사위 + 상태 텍스트 + 결과 오버레이).
+    /// 보드 전체 뷰(가로형).
+    /// 상단: 난이도/상태 / 중앙: 3줄(내 라인 [점수 ◀▶ 점수] 상대 라인) / 하단: 가로 주사위 트레이.
     /// 런타임에 코드로 UI를 구성한다.
     /// </summary>
     public sealed class BoardView : MonoBehaviour
     {
-        private FieldView _leftField;   // 플레이어(사람) — 좌측
-        private FieldView _rightField;  // 상대(AI) — 우측
         private PlayerId _humanId;
         private PlayerId _aiId;
 
-        private GameObject _root;
-        private CellView _handCell;
-        private Text _handLabel;
-        private Text _statusText;
+        private readonly MatchRowView[] _rows = new MatchRowView[Field.LineCount];
+        private TrayView _tray;
         private Text _levelText;
+        private Text _statusText;
 
+        private GameObject _root;
         private GameObject _resultOverlay;
         private Text _resultText;
         private Button _restartButton;
         private Button _menuButton;
 
-        /// <summary>라인 탭: (필드, 라인인덱스).</summary>
         public event Action<PlayerId, int> LineClicked;
         public event Action RestartClicked;
         public event Action MenuClicked;
 
-        /// <summary>보드 전체 표시/숨김.</summary>
         public void SetVisible(bool visible)
         {
             if (_root != null) _root.SetActive(visible);
@@ -47,55 +44,55 @@ namespace DiceBattle.UI
             var bg = UiFactory.CreateStretchPanel("BoardRoot", root, UiTheme.Background);
             UiSkin.Apply(bg, UiSkin.ScreenBackground, UiTheme.Background);
             _root = bg.gameObject;
-            // 가로형: [내 필드] [중앙(상태/획득 주사위)] [AI 필드]
-            UiFactory.AddHorizontalLayout(bg.gameObject, UiTheme.RootSpacing,
-                new RectOffset(UiTheme.RootPadding, UiTheme.RootPadding, 24, 24));
+            UiFactory.AddVerticalLayout(bg.gameObject, 12, new RectOffset(24, 24, 12, 12));
 
-            // 좌측: 내 필드 (점수는 우측=내측)
-            _leftField = new FieldView(bg.transform, _humanId, UiTheme.PlayerPanel, "나", scoreInnerLeft: false);
-            _leftField.LineClicked += (f, i) => LineClicked?.Invoke(f, i);
-
-            // 중앙: 상태 + 획득 주사위
-            BuildCenter(bg.transform);
-
-            // 우측: AI 필드 (점수는 좌측=내측)
-            _rightField = new FieldView(bg.transform, _aiId, UiTheme.OpponentPanel, "상대 (AI)", scoreInnerLeft: true);
-            _rightField.LineClicked += (f, i) => LineClicked?.Invoke(f, i);
-
+            BuildTopBar(bg.transform);
+            BuildRows(bg.transform);
+            BuildTrayArea(bg.transform);
             BuildResultOverlay(bg.rectTransform);
         }
 
-        private void BuildCenter(Transform parent)
+        private void BuildTopBar(Transform parent)
         {
-            var center = UiFactory.CreatePanel("Center", parent, UiTheme.CenterPanel);
-            UiSkin.Apply(center, UiSkin.CenterPanel, UiTheme.CenterPanel);
-            UiFactory.AddVerticalLayout(center.gameObject, 20, new RectOffset(20, 20, 40, 40));
-            // 중앙 패널을 "고정 폭"으로 → 상태 텍스트 길이와 무관하게 배치가 항상 동일.
-            // (전체 폭 - 필드2개 - 좌우여백 - 간격2개)
-            float centerWidth = UiTheme.ReferenceWidth - 2f * UiTheme.FieldWidth
-                                - UiTheme.RootPadding * 2f - UiTheme.RootSpacing * 2f;
-            UiFactory.SetPreferredWidth(center.gameObject, centerWidth);
+            var top = UiFactory.CreateRect("TopBar", parent);
+            UiFactory.AddHorizontalLayout(top.gameObject, 16, new RectOffset(12, 12, 0, 0));
+            UiFactory.SetPreferredHeight(top.gameObject, 96f);
 
-            _levelText = UiFactory.CreateText("Level", center.transform, "",
-                UiTheme.ScoreFontSize, UiTheme.WinText);
-            UiFactory.SetSize(_levelText.gameObject, 260f, 56f);
+            _levelText = UiFactory.CreateText("Level", top.transform, "",
+                UiTheme.ScoreFontSize, UiTheme.WinText, TextAnchor.MiddleLeft);
+            UiFactory.SetSize(_levelText.gameObject, 320f, 92f);
 
-            _statusText = UiFactory.CreateText("Status", center.transform, "",
-                UiTheme.StatusFontSize, UiTheme.Label, TextAnchor.UpperCenter);
-            UiFactory.SetFlexibleHeight(_statusText.gameObject, 1f);
+            _statusText = UiFactory.CreateText("Status", top.transform, "",
+                36, UiTheme.Label, TextAnchor.MiddleRight);
             _statusText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            UiFactory.SetFlexible(_statusText.gameObject);
+        }
 
-            _handLabel = UiFactory.CreateText("HandLabel", center.transform, "획득 주사위",
-                UiTheme.ScoreFontSize, UiTheme.LabelDim);
-            UiFactory.SetSize(_handLabel.gameObject, 260f, 48f);
+        private void BuildRows(Transform parent)
+        {
+            var rows = UiFactory.CreateRect("Rows", parent);
+            var v = UiFactory.AddVerticalLayout(rows.gameObject, 14, new RectOffset(0, 0, 0, 0));
+            v.childForceExpandHeight = true;
+            UiFactory.SetFlexible(rows.gameObject);
 
-            _handCell = new CellView(center.transform);
+            for (int i = 0; i < _rows.Length; i++)
+            {
+                _rows[i] = new MatchRowView(rows.transform, i, _humanId, _aiId);
+                _rows[i].Clicked += (f, idx) => LineClicked?.Invoke(f, idx);
+            }
+        }
+
+        private void BuildTrayArea(Transform parent)
+        {
+            var trayRow = UiFactory.CreateRect("TrayRow", parent);
+            UiFactory.AddHorizontalLayout(trayRow.gameObject, 0, new RectOffset(0, 0, 0, 0));
+            UiFactory.SetPreferredHeight(trayRow.gameObject, UiTheme.TrayHeight + 16f);
+            _tray = new TrayView(trayRow.transform, this);
         }
 
         private void BuildResultOverlay(RectTransform root)
         {
             var overlay = UiFactory.CreateStretchPanel("ResultOverlay", root, UiTheme.Overlay);
-            // 부모(BoardRoot)의 가로 레이아웃에 눌려 잘리지 않도록 레이아웃 제외 + 전체 화면.
             UiFactory.IgnoreLayout(overlay.gameObject);
             UiFactory.Stretch(overlay.rectTransform);
             UiFactory.AddVerticalLayout(overlay.gameObject, 40, new RectOffset(60, 60, 120, 120));
@@ -104,7 +101,7 @@ namespace DiceBattle.UI
             _resultText = UiFactory.CreateText("ResultText", overlay.transform, "",
                 56, UiTheme.Label, TextAnchor.MiddleCenter);
             _resultText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            UiFactory.SetSize(_resultText.gameObject, 900f, 700f);
+            UiFactory.SetSize(_resultText.gameObject, 900f, 640f);
 
             var buttonRow = UiFactory.CreateRect("Buttons", overlay.transform);
             UiFactory.AddHorizontalLayout(buttonRow.gameObject, 40, new RectOffset(0, 0, 0, 0));
@@ -131,18 +128,10 @@ namespace DiceBattle.UI
 
         public void Render(GameState state)
         {
-            _leftField.Render(state);
-            _rightField.Render(state);
-            RenderHand(state);
-        }
+            for (int i = 0; i < _rows.Length; i++)
+                _rows[i].Render(state);
 
-        private void RenderHand(GameState state)
-        {
-            var die = state.PendingDice;
-            if (die == null)
-                _handCell.SetEmpty();
-            else
-                _handCell.SetDie(die.Value, die.IsSpecial);
+            _tray.ShowPending(state.PendingDice, state.CurrentPlayer == _humanId);
         }
 
         public void SetStatus(string message) => _statusText.text = message;
@@ -153,46 +142,38 @@ namespace DiceBattle.UI
 
         public void ClearHighlights()
         {
-            _leftField.ClearHighlights();
-            _rightField.ClearHighlights();
+            for (int i = 0; i < _rows.Length; i++)
+                _rows[i].ClearHighlights();
         }
 
-        /// <summary>기본 배치: 사람 필드에서 빈칸 있는 라인만 선택 가능.</summary>
         public void HighlightPrimary(GameState state)
         {
             ClearHighlights();
-            HighlightFieldSpaces(state, ViewOf(_humanId));
+            for (int i = 0; i < _rows.Length; i++)
+                if (state.Field(_humanId)[i].HasSpace)
+                    _rows[i].SetSelectable(_humanId, true);
         }
 
-        /// <summary>추가 배치: 양쪽 필드에서 빈칸 있는 라인 모두 선택 가능.</summary>
         public void HighlightExtra(GameState state)
         {
             ClearHighlights();
-            HighlightFieldSpaces(state, _leftField);
-            HighlightFieldSpaces(state, _rightField);
+            for (int i = 0; i < _rows.Length; i++)
+            {
+                if (state.Field(_humanId)[i].HasSpace) _rows[i].SetSelectable(_humanId, true);
+                if (state.Field(_aiId)[i].HasSpace) _rows[i].SetSelectable(_aiId, true);
+            }
         }
-
-        private void HighlightFieldSpaces(GameState state, FieldView view)
-        {
-            var field = state.Field(view.Owner);
-            for (int i = 0; i < Field.LineCount; i++)
-                if (field[i].HasSpace) view.Line(i).SetSelectable(true);
-        }
-
-        private FieldView ViewOf(PlayerId owner)
-            => owner == _leftField.Owner ? _leftField : _rightField;
 
         // ---- 연출 ----
 
         public void PlayPlace(PlayerId field, int line, int cellIndex)
         {
-            var cell = ViewOf(field).Line(line).Cell(cellIndex);
-            StartCoroutine(PopCell(cell));
+            StartCoroutine(PopCell(_rows[line].Cell(field, cellIndex)));
         }
 
         public void PlayRemoval(PlayerId field, int line)
         {
-            StartCoroutine(FlashLine(ViewOf(field).Line(line)));
+            StartCoroutine(FlashImage(_rows[line].Background(field), _rows[line].BaseColor(field)));
         }
 
         private IEnumerator PopCell(CellView cell)
@@ -209,11 +190,9 @@ namespace DiceBattle.UI
             cell.Rect.localScale = Vector3.one;
         }
 
-        private IEnumerator FlashLine(LineView lineView)
+        private IEnumerator FlashImage(Image img, Color to)
         {
-            var img = lineView.Background;
             Color from = new Color(0.9f, 0.3f, 0.3f, 0.7f);
-            Color to = UiTheme.LineNormal;
             float t = 0f;
             const float dur = 0.35f;
             while (t < dur)

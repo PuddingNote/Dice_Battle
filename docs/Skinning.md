@@ -36,6 +36,7 @@ PNG(투명 배경 권장) 파일을 `Assets/Art/` 등에 넣고, 각 파일을 �
 | Line Normal / Line Highlight | 라인 행 배경 | ~600×170 | ○ |
 | Cell Empty / Filled / Special | 칸 배경 | 150×150 (또는 256×256) | ○ |
 | **Dice Faces ×6** | 주사위 눈 1~6 | 150×150 (또는 256×256), 투명 배경 | ✕ |
+| Tray | 주사위 굴림판(획득 주사위 배경) | ~280×280, 안쪽이 파인 판 형태 | ○ |
 | Button | 버튼 배경 | ~400×130, 테두리형 | ○ |
 
 > 셀/주사위는 정사각형 권장. 셀 실제 표시 크기는 `UiTheme.CellSize`(현재 150)이며,
@@ -59,6 +60,7 @@ PNG(투명 배경 권장) 파일을 `Assets/Art/` 등에 넣고, 각 파일을 �
 | Line Normal / Line Highlight | 평상시 / 선택된 라인 행 | 서로 다른 스프라이트 권장 |
 | Cell Empty / Cell Filled / Cell Special | 빈칸 / 일반 주사위칸 / 특수칸 배경 | |
 | **Dice Faces** | 크기 6으로 설정 후 **Element 0=눈1 … Element 5=눈6** | **6개 모두 채워야** 숫자 대신 표시 |
+| Tray | 주사위 굴림판 이미지 | 획득 주사위가 이 판 위(중앙)에서 굴러감 |
 | Button | 버튼 배경 | 모든 버튼 공통 |
 
 ## 4. 스킨을 게임에 연결

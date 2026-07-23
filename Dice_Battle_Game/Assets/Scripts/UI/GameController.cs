@@ -24,7 +24,10 @@ namespace DiceBattle.UI
         private readonly System.Random _rng = new System.Random();
         private PlayerId Ai => _human.Other();
 
-        private const float AiStepDelay = 0.6f;
+        // 주사위를 뽑고 무엇을 뽑았는지 확인할 시간(초) → 그 뒤 AI가 행동.
+        private const float AiThinkDelay = 1.5f;
+        // 배치 결과를 잠깐 보여주는 시간(초).
+        private const float AiActDelay = 0.8f;
 
         /// <summary>결과 화면에서 "메뉴로" 선택 시 발생.</summary>
         public event Action MenuRequested;
@@ -161,15 +164,22 @@ namespace DiceBattle.UI
         {
             _mode = InputMode.None;
             _board.ClearHighlights();
-            _board.SetStatus("상대(AI) 차례...");
-            yield return new WaitForSeconds(AiStepDelay);
 
             var s = _game.State;
             while (!s.IsGameOver && s.CurrentPlayer == Ai)
             {
+                // 이번 손패(주사위)는 이미 트레이에 굴려져 표시된 상태.
+                // 무엇을 뽑았는지 플레이어가 인지할 시간을 준 뒤 행동한다.
+                var die = s.PendingDice;
+                if (s.Phase == TurnPhase.AwaitingExtraPlacement)
+                    _board.SetStatus($"상대(AI) 추가 주사위 {die.Value}\n배치 준비 중...");
+                else
+                    _board.SetStatus($"상대(AI) 차례\n주사위 {die.Value} 획득 — 배치 준비 중...");
+                yield return new WaitForSeconds(AiThinkDelay);
+
                 if (s.Phase == TurnPhase.AwaitingPrimaryPlacement)
                 {
-                    bool wasSpecial = s.PendingDice.IsSpecial;
+                    bool wasSpecial = die.IsSpecial;
                     int line = _ai.ChoosePrimaryLine(s, Ai);
                     var res = _game.PlacePrimary(line);
                     _board.Render(s);
@@ -183,7 +193,8 @@ namespace DiceBattle.UI
                     AnimateExtra(mv.Field, mv.Line);
                 }
 
-                yield return new WaitForSeconds(AiStepDelay);
+                // 배치 결과를 잠시 보여준 뒤 다음 행동으로.
+                yield return new WaitForSeconds(AiActDelay);
             }
 
             BeginTurn();

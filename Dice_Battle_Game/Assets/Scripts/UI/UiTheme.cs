@@ -13,8 +13,11 @@ namespace DiceBattle.UI
 
         // 라인 행
         public static readonly Color LineNormal = new Color(1f, 1f, 1f, 0.06f);
-        public static readonly Color LineHighlight = new Color(0.30f, 0.70f, 0.35f, 0.45f);
+        public static readonly Color LineHighlight = new Color(0.30f, 0.70f, 0.35f, 0.55f);
         public static readonly Color LineDisabled = new Color(1f, 1f, 1f, 0.03f);
+        // 좌=내 라인(푸른 계열), 우=상대 라인(붉은 계열) — 편 구분용 배경 틴트
+        public static readonly Color MyLine = new Color(0.20f, 0.30f, 0.46f, 0.55f);
+        public static readonly Color OppLine = new Color(0.46f, 0.22f, 0.24f, 0.55f);
 
         // 셀
         public static readonly Color CellEmpty = new Color(1f, 1f, 1f, 0.08f);
@@ -30,8 +33,12 @@ namespace DiceBattle.UI
         public static readonly Color WinText = new Color(0.45f, 0.85f, 0.5f, 1f);
         public static readonly Color LoseText = new Color(0.9f, 0.45f, 0.45f, 1f);
 
-        // 결과 오버레이 (검정 50% 반투명 — 게임 화면이 뒤로 비침)
-        public static readonly Color Overlay = new Color(0f, 0f, 0f, 0.5f);
+        // 주사위 트레이(굴림판)
+        public static readonly Color Tray = new Color(0.16f, 0.22f, 0.15f, 1f);
+        public static readonly Color TrayFrame = new Color(0.32f, 0.42f, 0.27f, 1f);
+
+        // 결과 오버레이 (검정, alpha 250/255 ≈ 거의 불투명)
+        public static readonly Color Overlay = new Color32(0, 0, 0, 250);
         public static readonly Color Button = new Color(0.25f, 0.45f, 0.85f, 1f);
 
         // 치수(레퍼런스 해상도 1920x1080 가로형 기준)
@@ -42,6 +49,8 @@ namespace DiceBattle.UI
         public const float FieldWidth = 640f;   // 한 필드(3칸 + 점수) 열 너비
         public const int RootPadding = 28;      // 보드 루트 좌우 여백
         public const int RootSpacing = 12;      // 필드/중앙 사이 간격
+        public const float TrayWidth = 1040f;   // 하단 가로 트레이 폭
+        public const float TrayHeight = 230f;    // 하단 가로 트레이 높이
         public const int DiceFontSize = 72;
         public const int ScoreFontSize = 40;
         public const int StatusFontSize = 40;

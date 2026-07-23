@@ -3,6 +3,9 @@ using UnityEngine.UI;
 
 namespace DiceBattle.UI
 {
+    /// <summary>주사위 스프라이트 세트 구분(플레이어=초록 / AI=빨강 등).</summary>
+    public enum DiceSide { Player, Ai }
+
     /// <summary>
     /// UI 스킨(아트 교체용). 스프라이트/폰트 슬롯을 담는다.
     /// - 슬롯이 비어 있으면(null) 뷰는 기존 단색으로 렌더(현재 동작 유지).
@@ -34,8 +37,11 @@ namespace DiceBattle.UI
         public Sprite cellFilled;
         public Sprite cellSpecial;
 
-        [Header("주사위 눈 (1~6 순서, 6개 모두 지정 시 숫자 대신 사용)")]
-        public Sprite[] diceFaces;
+        [Header("플레이어 주사위 눈 1~6 (6개 모두 지정 시 숫자 대신 사용)")]
+        public Sprite[] playerDiceFaces;
+
+        [Header("AI(상대) 주사위 눈 1~6")]
+        public Sprite[] aiDiceFaces;
 
         [Header("버튼")]
         public Sprite button;
@@ -43,10 +49,11 @@ namespace DiceBattle.UI
         [Header("주사위 트레이(굴림판)")]
         public Sprite tray;
 
-        public Sprite DiceFace(int value)
+        public Sprite DiceFace(DiceSide side, int value)
         {
-            if (diceFaces != null && diceFaces.Length == 6 && value >= 1 && value <= 6)
-                return diceFaces[value - 1];
+            var arr = side == DiceSide.Ai ? aiDiceFaces : playerDiceFaces;
+            if (arr != null && arr.Length == 6 && value >= 1 && value <= 6)
+                return arr[value - 1];
             return null;
         }
 
@@ -61,7 +68,7 @@ namespace DiceBattle.UI
         public static Sprite CellSpecial => Active != null ? Active.cellSpecial : null;
         public static Sprite Button => Active != null ? Active.button : null;
         public static Sprite Tray => Active != null ? Active.tray : null;
-        public static Sprite Face(int value) => Active != null ? Active.DiceFace(value) : null;
+        public static Sprite Face(DiceSide side, int value) => Active != null ? Active.DiceFace(side, value) : null;
         public static Font ActiveFont => Active != null ? Active.font : null;
 
         /// <summary>

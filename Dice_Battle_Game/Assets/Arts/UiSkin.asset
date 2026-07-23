@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d32509ee5d131dc43b38e4fa0272ee86, type: 3}
+  m_Name: UiSkin
+  m_EditorClassIdentifier: DiceBattle.UI::DiceBattle.UI.UiSkin
+  font: {fileID: 0}
+  screenBackground: {fileID: 0}
+  fieldPanel: {fileID: 0}
+  centerPanel: {fileID: 0}
+  lineNormal: {fileID: -1419887773, guid: 42f722103b186024daa34f4e9b51a8e6, type: 3}
+  lineHighlight: {fileID: 0}
+  cellEmpty: {fileID: 0}
+  cellFilled: {fileID: 0}
+  cellSpecial: {fileID: 0}
+  playerDiceFaces:
+  - {fileID: 224581305, guid: 1dd6103609d0abe45863276a1daf4783, type: 3}
+  - {fileID: 2065319067, guid: b5f61a34f3242f34ea861e8da5dec427, type: 3}
+  - {fileID: 9698974, guid: eb79177896478614483fd3517dc3d595, type: 3}
+  - {fileID: -318050304, guid: 556c8ff714dfbad4a88801abdd71ba02, type: 3}
+  - {fileID: 498992802, guid: 3a258f63671eab849b9680d4b0abfb2c, type: 3}
+  - {fileID: 1639267190, guid: a0be7cafe5483294991d20bfd48d7d56, type: 3}
+  aiDiceFaces:
+  - {fileID: -1503603169, guid: 61c28096f4521fc44b63dd13783ce87d, type: 3}
+  - {fileID: -491261843, guid: 32307df228f77e7478a8c29ee78398e1, type: 3}
+  - {fileID: -1630749130, guid: 7f79e181e3de6d64a8a51375429f65d4, type: 3}
+  - {fileID: -692877083, guid: b0bcaa3aee11b4f40a100fcb64113b08, type: 3}
+  - {fileID: -1821518031, guid: 9ba2bf323aff22e44a98a7b8fa467edb, type: 3}
+  - {fileID: 295419808, guid: 1106aa49559e8274d80291c36d7c0848, type: 3}
+  button: {fileID: 0}
+  tray: {fileID: 1462395806, guid: ea27e41f38f6be841a9a853077849ccb, type: 3}

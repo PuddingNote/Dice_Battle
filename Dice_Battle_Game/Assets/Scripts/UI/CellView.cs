@@ -14,6 +14,10 @@ namespace DiceBattle.UI
         private readonly Image _face;   // 주사위 눈 스프라이트(스킨 지정 시)
         private readonly Text _label;   // 숫자(스프라이트 없을 때 폴백)
         private readonly Outline _outline;
+        private DiceSide _side = DiceSide.Player;
+
+        /// <summary>이 칸이 사용할 주사위 세트(플레이어/AI).</summary>
+        public void SetSide(DiceSide side) => _side = side;
 
         public CellView(Transform parent)
         {
@@ -47,26 +51,29 @@ namespace DiceBattle.UI
 
         public void SetDie(int value, bool isSpecial)
         {
-            Sprite cellSprite = isSpecial ? UiSkin.CellSpecial : UiSkin.CellFilled;
-            Color cellColor = isSpecial ? UiTheme.CellSpecial : UiTheme.CellFilled;
-            UiSkin.Apply(_bg, cellSprite, cellColor);
-
-            Sprite face = UiSkin.Face(value);
+            Sprite face = UiSkin.Face(_side, value);
             if (face != null)
             {
+                // 주사위 눈 스프라이트가 있으면: 칸 배경은 투명(라인 박스가 비침) + 주사위 스프라이트 표시.
+                UiSkin.Apply(_bg, null, Color.clear);
                 _face.sprite = face;
                 _face.enabled = true;
+                _face.color = isSpecial ? UiTheme.CellSpecial : Color.white; // 특수는 금색 틴트
                 _label.text = "";
+                _outline.enabled = false;
             }
             else
             {
+                // 폴백: 단색 칸 + 숫자.
+                Sprite cellSprite = isSpecial ? UiSkin.CellSpecial : UiSkin.CellFilled;
+                Color cellColor = isSpecial ? UiTheme.CellSpecial : UiTheme.CellFilled;
+                UiSkin.Apply(_bg, cellSprite, cellColor);
                 _face.enabled = false;
                 _label.text = value.ToString();
                 _label.color = isSpecial ? UiTheme.DiceTextOnSpecial : UiTheme.DiceText;
+                _outline.enabled = isSpecial && UiSkin.CellSpecial == null;
             }
 
-            // 특수 표시: 전용 스프라이트가 없을 때만 테두리로 강조.
-            _outline.enabled = isSpecial && UiSkin.CellSpecial == null;
             Rect.localScale = Vector3.one;
         }
     }

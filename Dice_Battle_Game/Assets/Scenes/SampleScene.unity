@@ -461,7 +461,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8b6d23f9e7a1444bbb8163994860192, type: 3}
   m_Name: 
   m_EditorClassIdentifier: DiceBattle.UI::DiceBattle.UI.GameBootstrap
-  useHeuristicAi: 1
+  skin: {fileID: 11400000, guid: 690afd5a7be55134b915207b63575d10, type: 2}
 --- !u!4 &1820679296
 Transform:
   m_ObjectHideFlags: 0

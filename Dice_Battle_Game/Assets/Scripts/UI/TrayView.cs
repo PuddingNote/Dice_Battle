@@ -25,12 +25,10 @@ namespace DiceBattle.UI
         {
             _runner = runner;
 
-            var tray = UiFactory.CreatePanel("Tray", parent, UiTheme.Tray);
-            UiSkin.Apply(tray, UiSkin.Tray, UiTheme.Tray);
+            // 색은 흰색(기본값)으로 두어 스프라이트 원본색을 그대로 표시. Outline 없음.
+            var tray = UiFactory.CreatePanel("Tray", parent, Color.white);
+            UiSkin.Apply(tray, UiSkin.Tray, Color.white);
             UiFactory.SetSize(tray.gameObject, UiTheme.TrayWidth, UiTheme.TrayHeight);
-            var frame = tray.gameObject.AddComponent<Outline>();
-            frame.effectColor = UiTheme.TrayFrame;
-            frame.effectDistance = new Vector2(6f, -6f);
 
             // 주사위는 레이아웃이 아닌 수동 위치로 두어 좌/우 이동 연출이 가능하게 한다.
             _die = new CellView(tray.transform);
@@ -68,6 +66,8 @@ namespace DiceBattle.UI
 
         private IEnumerator RollAndSlide(int finalValue, bool special, bool towardLeft)
         {
+            // 내 턴이면 플레이어(초록), 상대 턴이면 AI(빨강) 주사위 세트.
+            _die.SetSide(towardLeft ? DiceSide.Player : DiceSide.Ai);
             _dieRect.anchoredPosition = Vector2.zero;
 
             // 1) 가운데에서 굴림

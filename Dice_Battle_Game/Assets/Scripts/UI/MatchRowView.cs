@@ -28,8 +28,6 @@ namespace DiceBattle.UI
         private readonly Text _oppScore;
         private readonly Text _arrow;
 
-        private const float GroupWidth = UiTheme.CellSize * 3 + UiTheme.CellSpacing * 2;
-
         public MatchRowView(Transform parent, int index, PlayerId me, PlayerId opp)
         {
             Index = index;
@@ -42,9 +40,10 @@ namespace DiceBattle.UI
             // 내 칸 묶음(좌측): 안쪽(오른쪽=중앙)부터 index 0 이 되도록 역순 생성.
             _myButton = UiFactory.CreateButton($"MyGroup_{index}", row.transform, UiTheme.LineNormal);
             _myBg = _myButton.GetComponent<Image>();
-            UiFactory.SetSize(_myButton.gameObject, GroupWidth, UiTheme.CellSize);
+            UiFactory.SetSize(_myButton.gameObject, UiTheme.LineBoxWidth, UiTheme.LineBoxHeight);
             UiFactory.AddHorizontalLayout(_myButton.gameObject, (int)UiTheme.CellSpacing, new RectOffset(0, 0, 0, 0));
             for (int i = Line.Capacity - 1; i >= 0; i--) _myCells[i] = new CellView(_myButton.transform);
+            for (int i = 0; i < _myCells.Length; i++) _myCells[i].SetSide(DiceSide.Player);
             _myButton.onClick.AddListener(() => Clicked?.Invoke(_me, Index));
 
             // 중앙: 내 점수 ◀/▶ 상대 점수
@@ -63,9 +62,10 @@ namespace DiceBattle.UI
             // 상대 칸 묶음(우측): 안쪽(왼쪽=중앙)부터 index 0.
             _oppButton = UiFactory.CreateButton($"OppGroup_{index}", row.transform, UiTheme.LineNormal);
             _oppBg = _oppButton.GetComponent<Image>();
-            UiFactory.SetSize(_oppButton.gameObject, GroupWidth, UiTheme.CellSize);
+            UiFactory.SetSize(_oppButton.gameObject, UiTheme.LineBoxWidth, UiTheme.LineBoxHeight);
             UiFactory.AddHorizontalLayout(_oppButton.gameObject, (int)UiTheme.CellSpacing, new RectOffset(0, 0, 0, 0));
             for (int i = 0; i < Line.Capacity; i++) _oppCells[i] = new CellView(_oppButton.transform);
+            for (int i = 0; i < _oppCells.Length; i++) _oppCells[i].SetSide(DiceSide.Ai);
             _oppButton.onClick.AddListener(() => Clicked?.Invoke(_opp, Index));
 
             ClearHighlights();
@@ -123,16 +123,21 @@ namespace DiceBattle.UI
         public CellView Cell(PlayerId field, int i) => field == _me ? _myCells[i] : _oppCells[i];
         public Image Background(PlayerId field) => field == _me ? _myBg : _oppBg;
 
-        /// <summary>편 구분용 기본 배경색(내=푸름, 상대=붉음).</summary>
-        public Color BaseColor(PlayerId field) => field == _me ? UiTheme.MyLine : UiTheme.OppLine;
+        /// <summary>
+        /// 라인 박스 기본 틴트. 박스 스프라이트가 있으면 흰색(원본색 유지),
+        /// 없으면(프로토타입) 편 구분 색(내=푸름, 상대=붉음).
+        /// </summary>
+        public Color BaseColor(PlayerId field)
+            => UiSkin.LineNormal != null ? Color.white : (field == _me ? UiTheme.MyLine : UiTheme.OppLine);
 
         public void SetSelectable(PlayerId field, bool on)
         {
             var btn = field == _me ? _myButton : _oppButton;
             var bg = field == _me ? _myBg : _oppBg;
             btn.interactable = on;
-            UiSkin.Apply(bg, on ? UiSkin.LineHighlight : UiSkin.LineNormal,
-                on ? UiTheme.LineHighlight : BaseColor(field));
+            // 라인 박스 스프라이트는 두 상태 동일하게 쓰고 색(틴트)만 변경.
+            Color highlight = UiSkin.LineNormal != null ? UiTheme.LineHighlightSolid : UiTheme.LineHighlight;
+            UiSkin.Apply(bg, UiSkin.LineNormal, on ? highlight : BaseColor(field));
         }
 
         public void ClearHighlights()

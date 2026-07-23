@@ -14,6 +14,8 @@ namespace DiceBattle.UI
         // 라인 행
         public static readonly Color LineNormal = new Color(1f, 1f, 1f, 0.06f);
         public static readonly Color LineHighlight = new Color(0.30f, 0.70f, 0.35f, 0.55f);
+        // 스프라이트(라인 박스)에 곱해도 또렷한 불투명 초록 강조 틴트.
+        public static readonly Color LineHighlightSolid = new Color(0.55f, 0.95f, 0.60f, 1f);
         public static readonly Color LineDisabled = new Color(1f, 1f, 1f, 0.03f);
         // 좌=내 라인(푸른 계열), 우=상대 라인(붉은 계열) — 편 구분용 배경 틴트
         public static readonly Color MyLine = new Color(0.20f, 0.30f, 0.46f, 0.55f);
@@ -47,6 +49,8 @@ namespace DiceBattle.UI
         public const float CellSize = 150f;
         public const float CellSpacing = 14f;
         public const float FieldWidth = 640f;   // 한 필드(3칸 + 점수) 열 너비
+        public const float LineBoxWidth = 500f;  // 라인 박스(3칸 컨테이너) 폭 — 주사위보다 여유
+        public const float LineBoxHeight = 180f; // 라인 박스 높이
         public const int RootPadding = 28;      // 보드 루트 좌우 여백
         public const int RootSpacing = 12;      // 필드/중앙 사이 간격
         public const float TrayWidth = 1040f;   // 하단 가로 트레이 폭

@@ -14,10 +14,6 @@ namespace DiceBattle.UI
         private readonly Image _face;   // 주사위 눈 스프라이트(스킨 지정 시)
         private readonly Text _label;   // 숫자(스프라이트 없을 때 폴백)
         private readonly Outline _outline;
-        private DiceSide _side = DiceSide.Player;
-
-        /// <summary>이 칸이 사용할 주사위 세트(플레이어/AI).</summary>
-        public void SetSide(DiceSide side) => _side = side;
 
         public CellView(Transform parent)
         {
@@ -42,16 +38,18 @@ namespace DiceBattle.UI
 
         public void SetEmpty()
         {
-            UiSkin.Apply(_bg, UiSkin.CellEmpty, UiTheme.CellEmpty);
+            // 빈 칸은 슬롯 UI 없이 완전히 투명(주사위만 보이도록).
+            UiSkin.Apply(_bg, null, Color.clear);
             _face.enabled = false;
             _label.text = "";
             _outline.enabled = false;
             Rect.localScale = Vector3.one;
         }
 
-        public void SetDie(int value, bool isSpecial)
+        /// <param name="side">주사위 세트(놓은 사람 기준: 플레이어=초록 / AI=빨강).</param>
+        public void SetDie(int value, bool isSpecial, DiceSide side)
         {
-            Sprite face = UiSkin.Face(_side, value);
+            Sprite face = UiSkin.Face(side, value);
             if (face != null)
             {
                 // 주사위 눈 스프라이트가 있으면: 칸 배경은 투명(라인 박스가 비침) + 주사위 스프라이트 표시.

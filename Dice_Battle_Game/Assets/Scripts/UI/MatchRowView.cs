@@ -43,7 +43,6 @@ namespace DiceBattle.UI
             UiFactory.SetSize(_myButton.gameObject, UiTheme.LineBoxWidth, UiTheme.LineBoxHeight);
             UiFactory.AddHorizontalLayout(_myButton.gameObject, (int)UiTheme.CellSpacing, new RectOffset(0, 0, 0, 0));
             for (int i = Line.Capacity - 1; i >= 0; i--) _myCells[i] = new CellView(_myButton.transform);
-            for (int i = 0; i < _myCells.Length; i++) _myCells[i].SetSide(DiceSide.Player);
             _myButton.onClick.AddListener(() => Clicked?.Invoke(_me, Index));
 
             // 중앙: 내 점수 ◀/▶ 상대 점수
@@ -65,7 +64,6 @@ namespace DiceBattle.UI
             UiFactory.SetSize(_oppButton.gameObject, UiTheme.LineBoxWidth, UiTheme.LineBoxHeight);
             UiFactory.AddHorizontalLayout(_oppButton.gameObject, (int)UiTheme.CellSpacing, new RectOffset(0, 0, 0, 0));
             for (int i = 0; i < Line.Capacity; i++) _oppCells[i] = new CellView(_oppButton.transform);
-            for (int i = 0; i < _oppCells.Length; i++) _oppCells[i].SetSide(DiceSide.Ai);
             _oppButton.onClick.AddListener(() => Clicked?.Invoke(_opp, Index));
 
             ClearHighlights();
@@ -78,14 +76,16 @@ namespace DiceBattle.UI
             UpdateArrow(state.Field(_me)[Index].Score(), state.Field(_opp)[Index].Score());
         }
 
-        private static void RenderSide(CellView[] cells, Line line, Text scoreText)
+        private void RenderSide(CellView[] cells, Line line, Text scoreText)
         {
             for (int i = 0; i < cells.Length; i++)
             {
                 if (i < line.Count)
                 {
                     var d = line.Dice[i];
-                    cells[i].SetDie(d.Value, d.IsSpecial);
+                    // 색은 놓은 사람(Owner) 기준: 내가 놓았으면 초록, 상대가 놓았으면 빨강.
+                    DiceSide side = d.Owner == _me ? DiceSide.Player : DiceSide.Ai;
+                    cells[i].SetDie(d.Value, d.IsSpecial, side);
                 }
                 else
                 {

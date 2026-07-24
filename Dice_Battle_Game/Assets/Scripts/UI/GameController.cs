@@ -49,6 +49,7 @@ namespace DiceBattle.UI
             _level = level;
             StopAllCoroutines();
             _mode = InputMode.None;
+            _board.ClearFx();
             _board.HideResult();
 
             // AI(P2)만 난이도 가중 주사위, 사람은 공정.
@@ -61,6 +62,7 @@ namespace DiceBattle.UI
             PlayerId first = _rng.Next(2) == 0 ? PlayerId.One : PlayerId.Two;
             _game.Start(first);
             _board.Render(_game.State);
+            _board.RefreshTray(_game.State);
             BeginTurn();
         }
 
@@ -108,57 +110,95 @@ namespace DiceBattle.UI
             if (_mode == InputMode.Primary)
             {
                 if (field != _human || !s.Field(_human)[line].HasSpace) return;
-
-                bool wasSpecial = s.PendingDice.IsSpecial;
-                var res = _game.PlacePrimary(line);
-                _board.Render(s);
-                AnimatePrimary(_human, line, wasSpecial, res);
-
-                AfterHumanAction();
+                _mode = InputMode.None;
+                _board.ClearHighlights();
+                StartCoroutine(HumanPrimary(line));
             }
             else if (_mode == InputMode.Extra)
             {
                 if (!s.Field(field)[line].HasSpace) return;
-
-                _game.PlaceExtra(field, line);
-                _board.Render(s);
-                AnimateExtra(field, line);
-
-                AfterHumanAction();
+                _mode = InputMode.None;
+                _board.ClearHighlights();
+                StartCoroutine(HumanExtra(field, line));
             }
         }
 
-        /// <summary>기본 배치 연출. 상호 소멸이면 양쪽 라인 플래시(특수는 배치 팝).</summary>
-        private void AnimatePrimary(PlayerId placer, int line, bool wasSpecial, PlaceResult res)
+        private IEnumerator HumanPrimary(int line)
         {
-            if (!res.RemovalOccurred)
-            {
-                PopLastCell(placer, line);
-                return;
-            }
-
-            _board.PlayRemoval(placer.Other(), line); // 상대 주사위 소멸
-            if (wasSpecial)
-                PopLastCell(placer, line);            // 특수는 생존
-            else
-                _board.PlayRemoval(placer, line);     // 배치 주사위도 소멸
-        }
-
-        private void AnimateExtra(PlayerId field, int line) => PopLastCell(field, line);
-
-        private void PopLastCell(PlayerId field, int line)
-        {
-            int idx = _game.State.Field(field)[line].Count - 1;
-            if (idx >= 0)
-                _board.PlayPlace(field, line, idx);
-        }
-
-        private void AfterHumanAction()
-        {
-            _mode = InputMode.None;
-            _board.ClearHighlights();
+            yield return StartCoroutine(DoPrimary(_human, line));
             BeginTurn();
         }
+
+        private IEnumerator HumanExtra(PlayerId field, int line)
+        {
+            yield return StartCoroutine(DoExtra(_human, field, line));
+            BeginTurn();
+        }
+
+        /// <summary>기본 배치 + 이동/제거 연출(완료까지 대기).</summary>
+        private IEnumerator DoPrimary(PlayerId actor, int line)
+        {
+            var s = _game.State;
+            Dice die = s.PendingDice;
+            int value = die.Value;
+            bool special = die.IsSpecial;
+            DiceSide side = SideOf(die.Owner);
+            PlayerId opp = actor.Other();
+            int ownCellIdx = s.Field(actor)[line].Count;
+
+            // 제거 연출용: 상대 라인의 현재(제거 전) 상태를 캡처.
+            var oppLine = s.Field(opp)[line];
+            int preCount = oppLine.Count;
+            var preValues = new int[preCount];
+            var preSides = new DiceSide[preCount];
+            var preSpecial = new bool[preCount];
+            var preRemoved = new bool[preCount];
+            for (int i = 0; i < preCount; i++)
+            {
+                var d = oppLine.Dice[i];
+                preValues[i] = d.Value;
+                preSides[i] = SideOf(d.Owner);
+                preSpecial[i] = d.IsSpecial;
+                preRemoved[i] = d.Value == value && !d.IsSpecial;
+            }
+
+            var res = _game.PlacePrimary(line);
+
+            if (res.RemovalOccurred)
+            {
+                // 제거 연출이 상대 라인을 직접 제어하므로 렌더는 연출 후에.
+                yield return StartCoroutine(_board.RemovalFxRoutine(
+                    actor, line, value, special, side, ownCellIdx, special,
+                    opp, preValues, preSides, preSpecial, preRemoved));
+                _board.Render(s);
+            }
+            else
+            {
+                _board.Render(s);
+                yield return StartCoroutine(_board.PlaceFxRoutine(actor, line, ownCellIdx, value, special, side));
+            }
+
+            _board.RefreshTray(s);
+        }
+
+        /// <summary>추가(특수) 배치 + 이동 연출.</summary>
+        private IEnumerator DoExtra(PlayerId actor, PlayerId targetField, int line)
+        {
+            var s = _game.State;
+            Dice die = s.PendingDice;
+            int value = die.Value;
+            bool special = die.IsSpecial;
+            DiceSide side = SideOf(die.Owner);
+            int cellIdx = s.Field(targetField)[line].Count;
+
+            _game.PlaceExtra(targetField, line);
+            _board.Render(s);
+
+            yield return StartCoroutine(_board.PlaceFxRoutine(targetField, line, cellIdx, value, special, side));
+            _board.RefreshTray(s);
+        }
+
+        private DiceSide SideOf(PlayerId owner) => owner == _human ? DiceSide.Player : DiceSide.Ai;
 
         private IEnumerator AiTurn()
         {
@@ -168,32 +208,25 @@ namespace DiceBattle.UI
             var s = _game.State;
             while (!s.IsGameOver && s.CurrentPlayer == Ai)
             {
-                // 이번 손패(주사위)는 이미 트레이에 굴려져 표시된 상태.
-                // 무엇을 뽑았는지 플레이어가 인지할 시간을 준 뒤 행동한다.
+                // 이번 손패(주사위)는 트레이에 굴려져 표시된 상태. 인지할 시간을 준 뒤 행동.
                 var die = s.PendingDice;
                 if (s.Phase == TurnPhase.AwaitingExtraPlacement)
-                    _board.SetStatus($"상대(AI) 추가 주사위 {die.Value}\n배치 준비 중...");
+                    _board.SetStatus($"상대(AI) 추가 주사위 {die.Value}");
                 else
-                    _board.SetStatus($"상대(AI) 차례\n주사위 {die.Value} 획득 — 배치 준비 중...");
+                    _board.SetStatus($"상대(AI) 차례\n주사위 {die.Value}");
                 yield return new WaitForSeconds(AiThinkDelay);
 
                 if (s.Phase == TurnPhase.AwaitingPrimaryPlacement)
                 {
-                    bool wasSpecial = die.IsSpecial;
                     int line = _ai.ChoosePrimaryLine(s, Ai);
-                    var res = _game.PlacePrimary(line);
-                    _board.Render(s);
-                    AnimatePrimary(Ai, line, wasSpecial, res);
+                    yield return StartCoroutine(DoPrimary(Ai, line));
                 }
-                else if (s.Phase == TurnPhase.AwaitingExtraPlacement)
+                else
                 {
                     var mv = _ai.ChooseExtraMove(s, Ai);
-                    _game.PlaceExtra(mv.Field, mv.Line);
-                    _board.Render(s);
-                    AnimateExtra(mv.Field, mv.Line);
+                    yield return StartCoroutine(DoExtra(Ai, mv.Field, mv.Line));
                 }
 
-                // 배치 결과를 잠시 보여준 뒤 다음 행동으로.
                 yield return new WaitForSeconds(AiActDelay);
             }
 

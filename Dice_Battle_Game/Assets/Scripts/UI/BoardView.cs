@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using DiceBattle.Core;
@@ -22,6 +23,7 @@ namespace DiceBattle.UI
         private Text _statusText;
 
         private GameObject _root;
+        private RectTransform _fxLayer;
         private GameObject _resultOverlay;
         private Text _resultText;
         private Button _restartButton;
@@ -49,6 +51,14 @@ namespace DiceBattle.UI
             BuildTopBar(bg.transform);
             BuildRows(bg.transform);
             BuildTrayArea(bg.transform);
+
+            // 배치/제거 이동 연출용 FX 레이어(레이아웃 영향 없음, 게임 위·결과창 아래).
+            var fx = UiFactory.CreateStretchPanel("FxLayer", bg.rectTransform, new Color(0, 0, 0, 0));
+            UiFactory.IgnoreLayout(fx.gameObject);
+            UiFactory.Stretch(fx.rectTransform);
+            fx.raycastTarget = false;
+            _fxLayer = fx.rectTransform;
+
             BuildResultOverlay(bg.rectTransform);
         }
 
@@ -130,7 +140,11 @@ namespace DiceBattle.UI
         {
             for (int i = 0; i < _rows.Length; i++)
                 _rows[i].Render(state);
+        }
 
+        /// <summary>트레이 주사위 갱신(굴림/이동). 배치 연출과 겹치지 않도록 별도 호출.</summary>
+        public void RefreshTray(GameState state)
+        {
             _tray.ShowPending(state.PendingDice, state.CurrentPlayer == _humanId);
         }
 
@@ -164,44 +178,217 @@ namespace DiceBattle.UI
             }
         }
 
-        // ---- 연출 ----
+        // ---- 연출(트레이 → 라인 이동) ----
 
-        public void PlayPlace(PlayerId field, int line, int cellIndex)
+        /// <summary>트레이 주사위가 대상 칸으로 부드럽게 날아가 배치되는 연출.</summary>
+        public IEnumerator PlaceFxRoutine(PlayerId field, int line, int cellIndex,
+            int value, bool special, DiceSide side)
         {
-            StartCoroutine(PopCell(_rows[line].Cell(field, cellIndex)));
+            var cell = _rows[line].Cell(field, cellIndex);
+            Vector3 start = _tray.DieWorldPosition;
+            Vector3 end = cell.Rect.position;
+
+            cell.SetEmpty();     // 도착 전까지 대상 칸 비움
+            _tray.HideDie();     // 트레이 주사위 숨김(FX 주사위가 이동)
+
+            var fx = SpawnFx(start, value, special, side);
+            yield return MoveWorld(fx.Rect, start, end, 0.30f);
+
+            // 날아온 그대로 안착(크기 변화 없음). FX와 실제 칸이 같은 위치/크기라 매끄럽게 교체.
+            cell.SetDie(value, special, side);
+            DestroyFx(fx);
         }
 
-        public void PlayRemoval(PlayerId field, int line)
+        /// <summary>
+        /// 제거(알까기) 연출. 상대 라인 전체를 유령 주사위로 재현해 제어한다.
+        /// 트레이에서 1초 부들부들 → 가속 돌진 → 끝이 맞닿는 순간 등속으로 양쪽 튕김 →
+        /// 뒤 주사위가 있으면 빈자리로 부드럽게 당겨옴.
+        /// </summary>
+        public IEnumerator RemovalFxRoutine(
+            PlayerId placerField, int line, int placingValue, bool placingSpecial, DiceSide placerSide,
+            int placerCellIndex, bool placerSurvives,
+            PlayerId oppField, int[] preValues, DiceSide[] preSides, bool[] preSpecial, bool[] preRemoved)
         {
-            StartCoroutine(FlashImage(_rows[line].Background(field), _rows[line].BaseColor(field)));
+            var row = _rows[line];
+            int preCount = preValues.Length;
+
+            Vector3 start = _tray.DieWorldPosition;
+            _tray.HideDie();
+
+            // 상대 라인의 실제 칸을 숨기고 유령 주사위로 대체(연출 제어).
+            // 특수 여부도 그대로 반영(특수 주사위는 연출 내내 금색 유지).
+            var ghosts = new CellView[preCount];
+            for (int i = 0; i < preCount; i++)
+            {
+                row.Cell(oppField, i).SetEmpty();
+                ghosts[i] = SpawnFx(row.Cell(oppField, i).Rect.position, preValues[i], preSpecial[i], preSides[i]);
+            }
+
+            var cur = SpawnFx(start, placingValue, placingSpecial, placerSide);
+
+            // 1) 트레이에서 1초 부들부들
+            yield return Shake(cur.Rect, 1.0f, 8f);
+
+            // 첫 타겟 방향으로 가속 돌진, 끝이 맞닿는 지점에서 정지
+            int targetIdx = 0;
+            for (int i = 0; i < preCount; i++) if (preRemoved[i]) { targetIdx = i; break; }
+            Vector3 targetPos = ghosts[targetIdx].Rect.position;
+            Vector3 approach = targetPos - cur.Rect.position;
+            approach = approach.sqrMagnitude < 0.01f ? Vector3.up : approach.normalized;
+            Vector3 edgeStop = targetPos - approach * UiTheme.CellSize;
+
+            // 2) 가속 이동
+            yield return MoveAccel(cur.Rect, cur.Rect.position, edgeStop, 0.4f);
+
+            // 3+4) 충돌 즉시 등속으로 튕김. 둘 다 앞쪽으로 날아가되 서로 반대 옆으로 벌어짐(Y자).
+            const float knockDur = 0.45f;
+            const float knockDist = 2600f;
+            const float splay = 0.75f; // Y자 벌어짐 정도
+            Vector3 perpDir = new Vector3(-approach.y, approach.x, 0f).normalized;
+
+            var flyR = new List<RectTransform>();
+            var flyA = new List<Vector3>();
+            var flyB = new List<Vector3>();
+            int rc = 0;
+            for (int i = 0; i < preCount; i++)
+            {
+                if (!preRemoved[i]) continue;
+                // 타겟들: 앞쪽 + 한쪽 옆(여러 개면 부채꼴로 더 벌어짐)
+                Vector3 dir = (approach - perpDir * (splay + rc * 0.35f)).normalized;
+                rc++;
+                Vector3 gp = ghosts[i].Rect.position;
+                flyR.Add(ghosts[i].Rect); flyA.Add(gp);
+                flyB.Add(gp + dir * knockDist);
+            }
+            if (!placerSurvives)
+            {
+                // 현재 주사위: 앞쪽 + 반대쪽 옆 → 타겟과 Y자로 갈라짐
+                Vector3 dir = (approach + perpDir * splay).normalized;
+                flyR.Add(cur.Rect); flyA.Add(cur.Rect.position);
+                flyB.Add(cur.Rect.position + dir * knockDist);
+            }
+            yield return MoveMany(flyR, flyA, flyB, knockDur, easeOut: false); // 등속
+
+            for (int i = 0; i < preCount; i++) if (preRemoved[i]) DestroyFx(ghosts[i]);
+            if (!placerSurvives) { DestroyFx(cur); cur = null; }
+
+            // 5) 남은 주사위를 빈자리로 부드럽게 당겨옴(뒤 주사위 없어도 기본 텀)
+            var slideR = new List<RectTransform>();
+            var slideA = new List<Vector3>();
+            var slideB = new List<Vector3>();
+            int newIdx = 0;
+            for (int i = 0; i < preCount; i++)
+            {
+                if (preRemoved[i]) continue;
+                slideR.Add(ghosts[i].Rect);
+                slideA.Add(ghosts[i].Rect.position);
+                slideB.Add(row.Cell(oppField, newIdx).Rect.position);
+                newIdx++;
+            }
+            if (slideR.Count > 0)
+                yield return MoveMany(slideR, slideA, slideB, 0.3f, easeOut: true);
+            else
+                yield return new WaitForSeconds(0.3f);
+
+            for (int i = 0; i < preCount; i++) if (!preRemoved[i]) DestroyFx(ghosts[i]);
+
+            // 특수 생존 주사위는 본인 칸으로 이동해 배치
+            if (placerSurvives && cur != null)
+            {
+                var ownCell = row.Cell(placerField, placerCellIndex);
+                ownCell.SetEmpty();
+                yield return MoveWorld(cur.Rect, cur.Rect.position, ownCell.Rect.position, 0.25f);
+                ownCell.SetDie(placingValue, placingSpecial, placerSide);
+                DestroyFx(cur);
+            }
         }
 
-        private IEnumerator PopCell(CellView cell)
+        /// <summary>진행 중이던 이동 연출 잔여물 정리(재시작 시).</summary>
+        public void ClearFx()
+        {
+            if (_fxLayer == null) return;
+            for (int i = _fxLayer.childCount - 1; i >= 0; i--)
+                Destroy(_fxLayer.GetChild(i).gameObject);
+        }
+
+        private CellView SpawnFx(Vector3 worldPos, int value, bool special, DiceSide side)
+        {
+            var fx = new CellView(_fxLayer);
+            var rt = fx.Rect;
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(UiTheme.CellSize, UiTheme.CellSize);
+            rt.position = worldPos;
+            fx.SetDie(value, special, side);
+            return fx;
+        }
+
+        private static void DestroyFx(CellView fx)
+        {
+            if (fx != null) Destroy(fx.Rect.gameObject);
+        }
+
+        private static IEnumerator MoveWorld(RectTransform rt, Vector3 from, Vector3 to, float dur)
         {
             float t = 0f;
-            const float dur = 0.16f;
             while (t < dur)
             {
                 t += Time.deltaTime;
-                float s = Mathf.Lerp(1.35f, 1f, t / dur);
-                cell.Rect.localScale = new Vector3(s, s, 1f);
+                float k = Mathf.Clamp01(t / dur);
+                k = 1f - (1f - k) * (1f - k); // ease-out
+                rt.position = Vector3.Lerp(from, to, k);
                 yield return null;
             }
-            cell.Rect.localScale = Vector3.one;
+            rt.position = to;
         }
 
-        private IEnumerator FlashImage(Image img, Color to)
+        private static IEnumerator Shake(RectTransform rt, float dur, float amplitude)
         {
-            Color from = new Color(0.9f, 0.3f, 0.3f, 0.7f);
+            Vector3 basePos = rt.position;
             float t = 0f;
-            const float dur = 0.35f;
             while (t < dur)
             {
                 t += Time.deltaTime;
-                img.color = Color.Lerp(from, to, t / dur);
+                rt.position = basePos + new Vector3(
+                    UnityEngine.Random.Range(-amplitude, amplitude),
+                    UnityEngine.Random.Range(-amplitude, amplitude), 0f);
                 yield return null;
             }
-            img.color = to;
+            rt.position = basePos;
+        }
+
+        // 가속 이동(점점 빨라짐).
+        private static IEnumerator MoveAccel(RectTransform rt, Vector3 from, Vector3 to, float dur)
+        {
+            float t = 0f;
+            while (t < dur)
+            {
+                t += Time.deltaTime;
+                float k = Mathf.Clamp01(t / dur);
+                k = k * k; // ease-in
+                rt.position = Vector3.Lerp(from, to, k);
+                yield return null;
+            }
+            rt.position = to;
+        }
+
+        // 여러 개를 동시에 이동. easeOut=false면 등속(충돌 튕김), true면 감속(당겨오기).
+        private static IEnumerator MoveMany(List<RectTransform> rects, List<Vector3> from, List<Vector3> to,
+            float dur, bool easeOut)
+        {
+            float t = 0f;
+            while (t < dur)
+            {
+                t += Time.deltaTime;
+                float k = Mathf.Clamp01(t / dur);
+                if (easeOut) k = 1f - (1f - k) * (1f - k);
+                for (int i = 0; i < rects.Count; i++)
+                    rects[i].position = Vector3.Lerp(from[i], to[i], k);
+                yield return null;
+            }
+            for (int i = 0; i < rects.Count; i++)
+                rects[i].position = to[i];
         }
 
         // ---- 결과 ----

@@ -43,6 +43,19 @@ namespace DiceBattle.UI
             _die.SetEmpty();
         }
 
+        /// <summary>현재 트레이 주사위의 월드 위치(배치 연출 시작점).</summary>
+        public Vector3 DieWorldPosition => _dieRect.position;
+
+        /// <summary>트레이 주사위를 즉시 숨긴다(배치 연출로 날아갈 때).</summary>
+        public void HideDie()
+        {
+            if (_co != null) { _runner.StopCoroutine(_co); _co = null; }
+            _last = null;
+            _die.SetEmpty();
+            _dieRect.anchoredPosition = Vector2.zero;
+            _dieRect.localScale = Vector3.one;
+        }
+
         /// <summary>손패 주사위를 반영. towardLeft=true면 내 턴(좌측 이동), false면 상대 턴(우측).</summary>
         public void ShowPending(Dice die, bool towardLeft)
         {
@@ -67,21 +80,21 @@ namespace DiceBattle.UI
         private IEnumerator RollAndSlide(int finalValue, bool special, bool towardLeft)
         {
             // 내 턴이면 플레이어(초록), 상대 턴이면 AI(빨강) 주사위 세트.
-            _die.SetSide(towardLeft ? DiceSide.Player : DiceSide.Ai);
+            DiceSide side = towardLeft ? DiceSide.Player : DiceSide.Ai;
             _dieRect.anchoredPosition = Vector2.zero;
 
             // 1) 가운데에서 굴림
             const int flicks = 8;
             for (int i = 0; i < flicks; i++)
             {
-                _die.SetDie(_rng.Next(1, 7), false);
+                _die.SetDie(_rng.Next(1, 7), false, side);
                 float s = 1f + 0.12f * Mathf.Sin((i + 1) / (float)flicks * Mathf.PI);
                 _dieRect.localScale = new Vector3(s, s, 1f);
                 yield return new WaitForSeconds(0.045f);
             }
 
             // 2) 확정
-            _die.SetDie(finalValue, special);
+            _die.SetDie(finalValue, special, side);
             _dieRect.localScale = Vector3.one;
             yield return new WaitForSeconds(0.3f);
 

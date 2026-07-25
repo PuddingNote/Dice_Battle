@@ -72,7 +72,9 @@ namespace DiceBattle.UI
         public static Font ActiveFont => Active != null ? Active.font : null;
 
         /// <summary>
-        /// 이미지에 스프라이트를 적용한다. sprite가 null이면 단색, 있으면 스프라이트(9-slice)에 color를 틴트로 적용.
+        /// 이미지에 스프라이트를 적용한다.
+        /// 스프라이트가 있으면 색은 흰색(원본색 그대로)으로 두고, 없으면 지정 색(단색)을 쓴다.
+        /// (선택 강조 등 의도적 틴트는 호출부에서 색을 별도로 덮어쓴다.)
         /// </summary>
         public static void Apply(Image img, Sprite sprite, Color color)
         {
@@ -81,7 +83,7 @@ namespace DiceBattle.UI
             {
                 img.sprite = sprite;
                 img.type = Image.Type.Sliced;
-                img.color = color;
+                img.color = Color.white; // 이미지 원본색 사용(틴트 없음)
             }
             else
             {

@@ -180,23 +180,50 @@ namespace DiceBattle.UI
 
         // ---- 연출(트레이 → 라인 이동) ----
 
-        /// <summary>트레이 주사위가 대상 칸으로 부드럽게 날아가 배치되는 연출.</summary>
-        public IEnumerator PlaceFxRoutine(PlayerId field, int line, int cellIndex,
-            int value, bool special, DiceSide side)
+        /// <summary>
+        /// 트레이 주사위가 삽입 위치(insertIndex)로 날아가 배치되는 연출.
+        /// 같은 값 그룹화로 뒤로 밀리는 기존 주사위들(shift*)은 동시에 옆 칸으로 이동.
+        /// </summary>
+        public IEnumerator PlaceGroupedFxRoutine(PlayerId field, int line, int insertIndex,
+            int value, bool special, DiceSide side,
+            int[] shiftValues, DiceSide[] shiftSides, bool[] shiftSpecial)
         {
-            var cell = _rows[line].Cell(field, cellIndex);
+            var row = _rows[line];
+            int shiftCount = shiftValues.Length;
+
+            // 새 주사위 칸 + 밀려나는 칸들을 비우고(도착 전), 밀리는 주사위는 유령으로 대체.
+            for (int i = insertIndex; i <= insertIndex + shiftCount; i++)
+                row.Cell(field, i).SetEmpty();
+
+            var ghosts = new CellView[shiftCount];
+            for (int k = 0; k < shiftCount; k++)
+                ghosts[k] = SpawnFx(row.Cell(field, insertIndex + k).Rect.position,
+                    shiftValues[k], shiftSpecial[k], shiftSides[k]);
+
             Vector3 start = _tray.DieWorldPosition;
-            Vector3 end = cell.Rect.position;
+            _tray.HideDie();
+            var cur = SpawnFx(start, value, special, side);
 
-            cell.SetEmpty();     // 도착 전까지 대상 칸 비움
-            _tray.HideDie();     // 트레이 주사위 숨김(FX 주사위가 이동)
+            // 새 주사위 + 밀리는 주사위들을 같은 시간에 동시에 이동.
+            var rects = new List<RectTransform>();
+            var from = new List<Vector3>();
+            var to = new List<Vector3>();
+            rects.Add(cur.Rect); from.Add(start); to.Add(row.Cell(field, insertIndex).Rect.position);
+            for (int k = 0; k < shiftCount; k++)
+            {
+                rects.Add(ghosts[k].Rect);
+                from.Add(ghosts[k].Rect.position);
+                to.Add(row.Cell(field, insertIndex + k + 1).Rect.position);
+            }
+            yield return MoveMany(rects, from, to, 0.3f, easeOut: true);
 
-            var fx = SpawnFx(start, value, special, side);
-            yield return MoveWorld(fx.Rect, start, end, 0.30f);
+            // 실제 칸으로 확정
+            row.Cell(field, insertIndex).SetDie(value, special, side);
+            for (int k = 0; k < shiftCount; k++)
+                row.Cell(field, insertIndex + k + 1).SetDie(shiftValues[k], shiftSpecial[k], shiftSides[k]);
 
-            // 날아온 그대로 안착(크기 변화 없음). FX와 실제 칸이 같은 위치/크기라 매끄럽게 교체.
-            cell.SetDie(value, special, side);
-            DestroyFx(fx);
+            DestroyFx(cur);
+            for (int k = 0; k < shiftCount; k++) DestroyFx(ghosts[k]);
         }
 
         /// <summary>

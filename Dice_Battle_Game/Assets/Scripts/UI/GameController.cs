@@ -144,7 +144,11 @@ namespace DiceBattle.UI
             bool special = die.IsSpecial;
             DiceSide side = SideOf(die.Owner);
             PlayerId opp = actor.Other();
-            int ownCellIdx = s.Field(actor)[line].Count;
+
+            // 자기 라인 삽입 위치(같은 값 그룹화) + 밀려나는 주사위 캡처.
+            var ownLine = s.Field(actor)[line];
+            int ownInsert = ownLine.InsertIndexFor(value);
+            CaptureShift(ownLine, ownInsert, out var sv, out var ss, out var sp);
 
             // 제거 연출용: 상대 라인의 현재(제거 전) 상태를 캡처.
             var oppLine = s.Field(opp)[line];
@@ -166,22 +170,20 @@ namespace DiceBattle.UI
 
             if (res.RemovalOccurred)
             {
-                // 제거 연출이 상대 라인을 직접 제어하므로 렌더는 연출 후에.
                 yield return StartCoroutine(_board.RemovalFxRoutine(
-                    actor, line, value, special, side, ownCellIdx, special,
+                    actor, line, value, special, side, ownInsert, special,
                     opp, preValues, preSides, preSpecial, preRemoved));
-                _board.Render(s);
             }
             else
             {
-                _board.Render(s);
-                yield return StartCoroutine(_board.PlaceFxRoutine(actor, line, ownCellIdx, value, special, side));
+                yield return StartCoroutine(_board.PlaceGroupedFxRoutine(
+                    actor, line, ownInsert, value, special, side, sv, ss, sp));
             }
-
+            _board.Render(s);
             _board.RefreshTray(s);
         }
 
-        /// <summary>추가(특수) 배치 + 이동 연출.</summary>
+        /// <summary>추가(특수) 배치 + 그룹화 이동 연출.</summary>
         private IEnumerator DoExtra(PlayerId actor, PlayerId targetField, int line)
         {
             var s = _game.State;
@@ -189,16 +191,35 @@ namespace DiceBattle.UI
             int value = die.Value;
             bool special = die.IsSpecial;
             DiceSide side = SideOf(die.Owner);
-            int cellIdx = s.Field(targetField)[line].Count;
+
+            var lineModel = s.Field(targetField)[line];
+            int insert = lineModel.InsertIndexFor(value);
+            CaptureShift(lineModel, insert, out var sv, out var ss, out var sp);
 
             _game.PlaceExtra(targetField, line);
+            yield return StartCoroutine(_board.PlaceGroupedFxRoutine(
+                targetField, line, insert, value, special, side, sv, ss, sp));
             _board.Render(s);
-
-            yield return StartCoroutine(_board.PlaceFxRoutine(targetField, line, cellIdx, value, special, side));
             _board.RefreshTray(s);
         }
 
         private DiceSide SideOf(PlayerId owner) => owner == _human ? DiceSide.Player : DiceSide.Ai;
+
+        /// <summary>insertIndex 이후 밀려나는 주사위들의 값/세트/특수여부를 캡처.</summary>
+        private void CaptureShift(Line line, int insertIndex, out int[] values, out DiceSide[] sides, out bool[] specials)
+        {
+            int shiftCount = line.Count - insertIndex;
+            values = new int[shiftCount];
+            sides = new DiceSide[shiftCount];
+            specials = new bool[shiftCount];
+            for (int k = 0; k < shiftCount; k++)
+            {
+                var d = line.Dice[insertIndex + k];
+                values[k] = d.Value;
+                sides[k] = SideOf(d.Owner);
+                specials[k] = d.IsSpecial;
+            }
+        }
 
         private IEnumerator AiTurn()
         {

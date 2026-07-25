@@ -123,21 +123,18 @@ namespace DiceBattle.UI
         public CellView Cell(PlayerId field, int i) => field == _me ? _myCells[i] : _oppCells[i];
         public Image Background(PlayerId field) => field == _me ? _myBg : _oppBg;
 
-        /// <summary>
-        /// 라인 박스 기본 틴트. 박스 스프라이트가 있으면 흰색(원본색 유지),
-        /// 없으면(프로토타입) 편 구분 색(내=푸름, 상대=붉음).
-        /// </summary>
-        public Color BaseColor(PlayerId field)
-            => UiSkin.LineNormal != null ? Color.white : (field == _me ? UiTheme.MyLine : UiTheme.OppLine);
-
         public void SetSelectable(PlayerId field, bool on)
         {
             var btn = field == _me ? _myButton : _oppButton;
             var bg = field == _me ? _myBg : _oppBg;
             btn.interactable = on;
-            // 라인 박스 스프라이트는 두 상태 동일하게 쓰고 색(틴트)만 변경.
-            Color highlight = UiSkin.LineNormal != null ? UiTheme.LineHighlightSolid : UiTheme.LineHighlight;
-            UiSkin.Apply(bg, UiSkin.LineNormal, on ? highlight : BaseColor(field));
+
+            // 기본 상태: 스프라이트 있으면 원본색(흰색), 없으면 편 구분 색.
+            UiSkin.Apply(bg, UiSkin.LineNormal, field == _me ? UiTheme.MyLine : UiTheme.OppLine);
+
+            // 선택 가능 시 초록 강조(의도적 틴트 → 색을 직접 덮어씀).
+            if (on)
+                bg.color = UiSkin.LineNormal != null ? UiTheme.LineHighlightSolid : UiTheme.LineHighlight;
         }
 
         public void ClearHighlights()

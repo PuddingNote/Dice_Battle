@@ -28,6 +28,8 @@ namespace DiceBattle.UI
         private const float AiThinkDelay = 1.5f;
         // 배치 결과를 잠깐 보여주는 시간(초).
         private const float AiActDelay = 0.8f;
+        // 게임 종료 후 결과 화면을 띄우기 전 대기(승자 도장 확인 시간).
+        private const float EndGameDelay = 2f;
 
         /// <summary>결과 화면에서 "메뉴로" 선택 시 발생.</summary>
         public event Action MenuRequested;
@@ -68,6 +70,12 @@ namespace DiceBattle.UI
 
         private void OnRestart() => StartMatch(_level);
 
+        private IEnumerator EndGameAfterDelay()
+        {
+            yield return new WaitForSeconds(EndGameDelay);
+            MatchFinished?.Invoke(_game.Outcome.Value); // 점수 갱신 후 GameManager가 결과창 표시
+        }
+
         private void BeginTurn()
         {
             var s = _game.State;
@@ -76,7 +84,8 @@ namespace DiceBattle.UI
                 _mode = InputMode.None;
                 _board.ClearHighlights();
                 _board.SetStatus("게임 종료");
-                MatchFinished?.Invoke(_game.Outcome.Value); // 점수 갱신 후 GameManager가 결과창 표시
+                // 라인별 승자 도장을 볼 수 있도록 잠시 뒤 결과 화면 표시.
+                StartCoroutine(EndGameAfterDelay());
                 return;
             }
 

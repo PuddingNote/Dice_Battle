@@ -49,6 +49,9 @@ namespace DiceBattle.UI
         [Header("주사위 트레이(굴림판)")]
         public Sprite tray;
 
+        [Header("승자 라인 표식(따봉 등)")]
+        public Sprite winStamp;
+
         public Sprite DiceFace(DiceSide side, int value)
         {
             var arr = side == DiceSide.Ai ? aiDiceFaces : playerDiceFaces;
@@ -68,6 +71,7 @@ namespace DiceBattle.UI
         public static Sprite CellSpecial => Active != null ? Active.cellSpecial : null;
         public static Sprite Button => Active != null ? Active.button : null;
         public static Sprite Tray => Active != null ? Active.tray : null;
+        public static Sprite WinStamp => Active != null ? Active.winStamp : null;
         public static Sprite Face(DiceSide side, int value) => Active != null ? Active.DiceFace(side, value) : null;
         public static Font ActiveFont => Active != null ? Active.font : null;
 

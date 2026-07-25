@@ -87,7 +87,7 @@ namespace DiceBattle.UI
 
             for (int i = 0; i < _rows.Length; i++)
             {
-                _rows[i] = new MatchRowView(rows.transform, i, _humanId, _aiId);
+                _rows[i] = new MatchRowView(rows.transform, i, _humanId, _aiId, this);
                 _rows[i].Clicked += (f, idx) => LineClicked?.Invoke(f, idx);
             }
         }

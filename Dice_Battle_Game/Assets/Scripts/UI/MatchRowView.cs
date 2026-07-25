@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using DiceBattle.Core;
@@ -28,11 +29,17 @@ namespace DiceBattle.UI
         private readonly Text _oppScore;
         private readonly Text _arrow;
 
-        public MatchRowView(Transform parent, int index, PlayerId me, PlayerId opp)
+        private Image _myStamp;
+        private Image _oppStamp;
+        private readonly MonoBehaviour _runner;
+        private int _decided; // 0 미결, 1 나 승, 2 상대 승
+
+        public MatchRowView(Transform parent, int index, PlayerId me, PlayerId opp, MonoBehaviour runner)
         {
             Index = index;
             _me = me;
             _opp = opp;
+            _runner = runner;
 
             var row = UiFactory.CreateRect($"Row_{index}", parent);
             UiFactory.AddHorizontalLayout(row.gameObject, 12, new RectOffset(20, 20, 6, 6));
@@ -66,14 +73,86 @@ namespace DiceBattle.UI
             for (int i = 0; i < Line.Capacity; i++) _oppCells[i] = new CellView(_oppButton.transform);
             _oppButton.onClick.AddListener(() => Clicked?.Invoke(_opp, Index));
 
+            // 승자 도장(점수 우상단). 스프라이트 없으면 임시로 ★ 표식.
+            _myStamp = CreateStamp(_myScore.transform);
+            _oppStamp = CreateStamp(_oppScore.transform);
+
             ClearHighlights();
+        }
+
+        private static Image CreateStamp(Transform scoreParent)
+        {
+            var img = UiFactory.CreatePanel("WinStamp", scoreParent, Color.clear);
+            img.raycastTarget = false;
+            var rt = img.rectTransform;
+            rt.anchorMin = new Vector2(1f, 1f);
+            rt.anchorMax = new Vector2(1f, 1f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(65f, 65f);
+            rt.anchoredPosition = new Vector2(-5f, -45f);
+
+            var label = UiFactory.CreateText("Label", img.transform, "★", 46, UiTheme.CellSpecial);
+            UiFactory.Stretch(label.rectTransform);
+
+            if (UiSkin.WinStamp != null)
+            {
+                UiSkin.Apply(img, UiSkin.WinStamp, Color.white); // 스프라이트 원본색
+                label.enabled = false;
+            }
+
+            img.gameObject.SetActive(false);
+            return img;
         }
 
         public void Render(GameState state)
         {
-            RenderSide(_myCells, state.Field(_me)[Index], _myScore);
-            RenderSide(_oppCells, state.Field(_opp)[Index], _oppScore);
-            UpdateArrow(state.Field(_me)[Index].Score(), state.Field(_opp)[Index].Score());
+            var myLine = state.Field(_me)[Index];
+            var oppLine = state.Field(_opp)[Index];
+            RenderSide(_myCells, myLine, _myScore);
+            RenderSide(_oppCells, oppLine, _oppScore);
+
+            int ms = myLine.Score();
+            int os = oppLine.Score();
+            UpdateArrow(ms, os);
+            UpdateDecided(myLine.IsFull && oppLine.IsFull, ms, os);
+        }
+
+        // 양쪽 라인이 가득 차 승부가 확정되면 승자 점수 옆에 도장을 찍는다.
+        private void UpdateDecided(bool bothFull, int ms, int os)
+        {
+            int winner = 0;
+            if (bothFull) winner = ms > os ? 1 : (os > ms ? 2 : 0);
+            if (winner == _decided) return;
+            _decided = winner;
+
+            _myStamp.gameObject.SetActive(winner == 1);
+            _oppStamp.gameObject.SetActive(winner == 2);
+
+            if (winner == 1) StampIn(_myStamp);
+            else if (winner == 2) StampIn(_oppStamp);
+        }
+
+        private void StampIn(Image stamp)
+        {
+            if (_runner != null) _runner.StartCoroutine(StampAnim(stamp.rectTransform));
+            else stamp.rectTransform.localScale = Vector3.one;
+        }
+
+        // 쾅 찍는 느낌: 크게 나타나 빠르게 원래 크기로.
+        private static IEnumerator StampAnim(RectTransform rt)
+        {
+            float t = 0f;
+            const float dur = 0.18f;
+            while (t < dur)
+            {
+                t += Time.deltaTime;
+                float k = Mathf.Clamp01(t / dur);
+                k = 1f - (1f - k) * (1f - k); // ease-out
+                float s = Mathf.Lerp(2.3f, 1f, k);
+                rt.localScale = new Vector3(s, s, 1f);
+                yield return null;
+            }
+            rt.localScale = Vector3.one;
         }
 
         private void RenderSide(CellView[] cells, Line line, Text scoreText)

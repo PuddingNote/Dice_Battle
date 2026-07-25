@@ -15,6 +15,7 @@ namespace DiceBattle.UI
         private enum InputMode { None, Primary, Extra }
 
         private BoardView _board;
+        private DifficultyConfig _difficulty;
         private DiceGame _game;
         private IAiStrategy _ai;
         private InputMode _mode = InputMode.None;
@@ -37,9 +38,10 @@ namespace DiceBattle.UI
         /// <summary>한 판 종료 시 결과를 전달(점수/등급 갱신용).</summary>
         public event Action<MatchOutcome> MatchFinished;
 
-        public void Init(BoardView board)
+        public void Init(BoardView board, DifficultyConfig difficulty)
         {
             _board = board;
+            _difficulty = difficulty;
             _board.LineClicked += OnLineClicked;
             _board.RestartClicked += OnRestart;
             _board.MenuClicked += () => MenuRequested?.Invoke();
@@ -54,9 +56,13 @@ namespace DiceBattle.UI
             _board.ClearFx();
             _board.HideResult();
 
-            // AI(P2)만 난이도 가중 주사위, 사람은 공정.
-            _game = new DiceGame(new DifficultyDiceRoller(Ai, level));
-            _ai = new LeveledAiStrategy(level);
+            // AI(P2)만 난이도 가중 주사위, 사람은 공정. 설정 에셋이 있으면 그 값을 사용.
+            _game = new DiceGame(_difficulty != null
+                ? _difficulty.CreateRoller(Ai, level)
+                : new DifficultyDiceRoller(Ai, level));
+            _ai = _difficulty != null
+                ? _difficulty.CreateAi(level)
+                : new LeveledAiStrategy(level);
 
             _board.SetLevelInfo(level);
 

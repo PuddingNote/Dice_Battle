@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: UiSkin
   m_EditorClassIdentifier: DiceBattle.UI::DiceBattle.UI.UiSkin
   font: {fileID: 0}
-  screenBackground: {fileID: 0}
+  screenBackground: {fileID: -1437103311, guid: 9f7c8462911decf4c9dee98c7a269999, type: 3}
   fieldPanel: {fileID: 0}
   centerPanel: {fileID: 0}
-  lineNormal: {fileID: -1419887773, guid: 42f722103b186024daa34f4e9b51a8e6, type: 3}
+  lineNormal: {fileID: -1301613890, guid: cfc22dd293342c1448ba59a63f90e979, type: 3}
   lineHighlight: {fileID: 0}
   cellEmpty: {fileID: 0}
   cellFilled: {fileID: 0}
@@ -35,5 +35,6 @@ MonoBehaviour:
   - {fileID: -692877083, guid: b0bcaa3aee11b4f40a100fcb64113b08, type: 3}
   - {fileID: -1821518031, guid: 9ba2bf323aff22e44a98a7b8fa467edb, type: 3}
   - {fileID: 295419808, guid: 1106aa49559e8274d80291c36d7c0848, type: 3}
-  button: {fileID: 0}
+  button: {fileID: -1824982554, guid: 180e7786def29c34bb1736b538aa7f37, type: 3}
   tray: {fileID: 1462395806, guid: ea27e41f38f6be841a9a853077849ccb, type: 3}
+  winStamp: {fileID: 0}

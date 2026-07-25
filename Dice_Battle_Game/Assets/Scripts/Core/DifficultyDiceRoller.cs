@@ -16,31 +16,41 @@ namespace DiceBattle.Core
     {
         private readonly Random _rng;
         private readonly PlayerId _weightedPlayer;
-        private readonly int _level;
+        private readonly double _lowBias; // 0=공정, 1=항상 두 번 굴려 작은 값(강한 하향)
 
         public DifficultyDiceRoller(PlayerId weightedPlayer, int level)
-            : this(weightedPlayer, level, new Random()) { }
+            : this(weightedPlayer, DefaultLowBias(level), new Random()) { }
 
         public DifficultyDiceRoller(PlayerId weightedPlayer, int level, Random rng)
+            : this(weightedPlayer, DefaultLowBias(level), rng) { }
+
+        /// <summary>명시적 하향 편향(0~1) 지정.</summary>
+        public DifficultyDiceRoller(PlayerId weightedPlayer, double lowBias, Random rng)
         {
             _weightedPlayer = weightedPlayer;
-            _level = level < 1 ? 1 : (level > 5 ? 5 : level);
+            _lowBias = lowBias < 0 ? 0 : (lowBias > 1 ? 1 : lowBias);
             _rng = rng ?? new Random();
+        }
+
+        /// <summary>레벨별 기본 하향 편향(Inspector 미설정 시 사용).</summary>
+        public static double DefaultLowBias(int level)
+        {
+            switch (level)
+            {
+                case 1: return 1.0;
+                case 2: return 0.6;
+                case 3: return 0.4;
+                case 4: return 0.2;
+                default: return 0.0;
+            }
         }
 
         public int Roll(PlayerId player)
         {
             if (player != _weightedPlayer)
                 return Uniform();
-
-            switch (_level)
-            {
-                case 1: return Min2();                                        // 강한 하향
-                case 2: return _rng.NextDouble() < 0.6 ? Min2() : Uniform();  // 하향
-                case 3: return _rng.NextDouble() < 0.4 ? Min2() : Uniform();  // 중간 하향
-                case 4: return _rng.NextDouble() < 0.2 ? Min2() : Uniform();  // 약한 하향
-                default: return Uniform();                                    // Lv5 공정
-            }
+            // lowBias 확률로 두 번 굴려 작은 값(하향), 아니면 공정.
+            return _rng.NextDouble() < _lowBias ? Min2() : Uniform();
         }
 
         private int Uniform() => _rng.Next(Dice.MinValue, Dice.MaxValue + 1);

@@ -14,6 +14,9 @@ namespace DiceBattle.UI
         [Tooltip("선택: UI 스킨 에셋. 비우면 기본 단색 UI로 동작한다.")]
         [SerializeField] private UiSkin skin;
 
+        [Tooltip("선택: 난이도(등급별 AI 수치) 에셋. 비우면 코드 기본값 사용.")]
+        [SerializeField] private DifficultyConfig difficulty;
+
         private void Start()
         {
             UiSkin.Active = skin; // 스킨 지정 시 스프라이트 적용, null이면 단색 폴백
@@ -32,7 +35,7 @@ namespace DiceBattle.UI
             var gmGo = new GameObject("GameManager");
             gmGo.transform.SetParent(transform, false);
             var gm = gmGo.AddComponent<GameManager>();
-            gm.Init(content);
+            gm.Init(content, difficulty);
         }
 
         private static Canvas CreateCanvas()

@@ -37,16 +37,40 @@ namespace DiceBattle.AI
             Level = level < MinLevel ? MinLevel : (level > MaxLevel ? MaxLevel : level);
             _rng = rng ?? new Random();
             _random = new RandomAiStrategy(_rng);
-
-            switch (Level)
-            {
-                case 1: _pBest = 0.0; _pWorst = 1.0; _pSmartExtra = 0.0; break;
-                case 2: _pBest = 0.0; _pWorst = 0.5; _pSmartExtra = 0.2; break;
-                case 3: _pBest = 0.3; _pWorst = 0.0; _pSmartExtra = 0.4; break;
-                case 4: _pBest = 0.7; _pWorst = 0.0; _pSmartExtra = 0.7; break;
-                default: _pBest = 1.0; _pWorst = 0.0; _pSmartExtra = 1.0; break;
-            }
+            _pBest = DefaultPlayBest(Level);
+            _pWorst = DefaultPlayWorst(Level);
+            _pSmartExtra = DefaultSmartExtra(Level);
         }
+
+        /// <summary>명시적 확률 지정(난이도 설정 에셋에서 값 주입용).</summary>
+        public LeveledAiStrategy(double playBest, double playWorst, double smartExtra)
+            : this(playBest, playWorst, smartExtra, new Random()) { }
+
+        public LeveledAiStrategy(double playBest, double playWorst, double smartExtra, Random rng)
+        {
+            Level = 0;
+            _rng = rng ?? new Random();
+            _random = new RandomAiStrategy(_rng);
+            _pBest = Clamp01(playBest);
+            _pWorst = Clamp01(playWorst);
+            _pSmartExtra = Clamp01(smartExtra);
+        }
+
+        // 레벨별 기본값(Inspector 미설정 시 사용).
+        public static double DefaultPlayBest(int lvl)
+        {
+            switch (lvl) { case 1: return 0.0; case 2: return 0.0; case 3: return 0.3; case 4: return 0.7; default: return 1.0; }
+        }
+        public static double DefaultPlayWorst(int lvl)
+        {
+            switch (lvl) { case 1: return 1.0; case 2: return 0.5; default: return 0.0; }
+        }
+        public static double DefaultSmartExtra(int lvl)
+        {
+            switch (lvl) { case 1: return 0.0; case 2: return 0.2; case 3: return 0.4; case 4: return 0.7; default: return 1.0; }
+        }
+
+        private static double Clamp01(double v) => v < 0 ? 0 : (v > 1 ? 1 : v);
 
         public int ChoosePrimaryLine(GameState state, PlayerId me)
         {

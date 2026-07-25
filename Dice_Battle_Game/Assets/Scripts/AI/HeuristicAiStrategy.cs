@@ -140,44 +140,63 @@ namespace DiceBattle.AI
             Field myField = state.Field(me);
             Field oppField = state.Field(opp);
 
-            // 본인 필드에 여유가 있으면 본인 필드에 배치(이기는 라인 수/점수 최대화).
-            if (myField.HasSpace)
-            {
-                int bestLine = -1;
-                int bestWins = -1;
-                int bestScore = -1;
-                for (int i = 0; i < Field.LineCount; i++)
-                {
-                    if (!myField[i].HasSpace) continue;
+            ExtraMove best = default;
+            double bestScore = double.NegativeInfinity;
+            bool found = false;
 
-                    int wins = AiScoring.MyLineWinsAfter(state, me, me, i, v);
-                    int score = AiScoring.LineScoreWith(myField[i], v);
-                    if (wins > bestWins ||
-                        (wins == bestWins && score > bestScore))
-                    {
-                        bestLine = i;
-                        bestWins = wins;
-                        bestScore = score;
-                    }
-                }
-                return new ExtraMove(me, bestLine);
-            }
-
-            // 본인 필드가 가득 찼으면 상대 필드에 배치 — 상대에게 도움이 가장 적은(추가 점수 최소) 라인.
-            int worstLine = -1;
-            int worstOppScore = int.MaxValue;
+            // 본인 필드 + 상대 필드의 모든 배치 후보를 평가해 가장 좋은 곳을 고른다.
             for (int i = 0; i < Field.LineCount; i++)
             {
-                if (!oppField[i].HasSpace) continue;
-
-                int oppScore = AiScoring.LineScoreWith(oppField[i], v);
-                if (oppScore < worstOppScore)
+                if (myField[i].HasSpace)
                 {
-                    worstOppScore = oppScore;
-                    worstLine = i;
+                    double sc = EvaluateExtra(state, me, me, i, v);
+                    if (!found || sc > bestScore) { bestScore = sc; best = new ExtraMove(me, i); found = true; }
+                }
+                if (oppField[i].HasSpace)
+                {
+                    double sc = EvaluateExtra(state, me, opp, i, v);
+                    if (!found || sc > bestScore) { bestScore = sc; best = new ExtraMove(opp, i); found = true; }
                 }
             }
-            return new ExtraMove(opp, worstLine);
+            return best;
+        }
+
+        // 추가(특수) 주사위를 (field, line)에 놓았을 때의 가치.
+        // 본인 필드: 이기는 라인/점수 향상. 상대 필드: 낮은 값으로 칸을 막아 상대 잠재점수를 깎는 이득(방해).
+        private double EvaluateExtra(GameState state, PlayerId me, PlayerId field, int line, int v)
+        {
+            PlayerId opp = me.Other();
+            Field myField = state.Field(me);
+            Field oppField = state.Field(opp);
+
+            var my = new int[Field.LineCount];
+            var op = new int[Field.LineCount];
+            for (int j = 0; j < Field.LineCount; j++)
+            {
+                my[j] = myField[j].Score();
+                op[j] = oppField[j].Score();
+            }
+
+            if (field == me) my[line] = AiScoring.LineScoreWith(myField[line], v);
+            else op[line] = AiScoring.LineScoreWith(oppField[line], v);
+
+            int wins = 0;
+            double margin = 0;
+            for (int j = 0; j < Field.LineCount; j++)
+            {
+                if (my[j] > op[j]) wins++;
+                margin += my[j] - op[j];
+            }
+            double score = wins * WinBonus * 10 + margin;
+
+            if (field == opp)
+            {
+                // 상대 칸을 막는 이득: 낮은 값일수록 크고, 상대가 이기는(잠재적) 라인일수록 가치.
+                double denial = (Dice.MaxValue + Dice.MinValue) * 0.5 - v; // (3.5 - v)
+                bool oppAheadHere = oppField[line].Score() > myField[line].Score();
+                score += denial * (oppAheadHere ? 8.0 : 3.0);
+            }
+            return score;
         }
     }
 }

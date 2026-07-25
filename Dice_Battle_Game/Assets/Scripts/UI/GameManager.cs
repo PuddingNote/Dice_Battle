@@ -16,7 +16,7 @@ namespace DiceBattle.UI
         private BoardView _board;
         private GameController _controller;
 
-        public void Init(RectTransform canvasRoot)
+        public void Init(RectTransform canvasRoot, DifficultyConfig difficulty)
         {
             var boardGo = new GameObject("BoardView");
             boardGo.transform.SetParent(transform, false);
@@ -26,7 +26,7 @@ namespace DiceBattle.UI
             var controllerGo = new GameObject("GameController");
             controllerGo.transform.SetParent(transform, false);
             _controller = controllerGo.AddComponent<GameController>();
-            _controller.Init(_board);
+            _controller.Init(_board, difficulty);
             _controller.MenuRequested += ShowMenu;
             _controller.MatchFinished += OnMatchFinished;
 

@@ -163,9 +163,16 @@ namespace DiceBattle.UI
         public void HighlightPrimary(GameState state)
         {
             ClearHighlights();
+            int v = state.PendingDice != null ? state.PendingDice.Value : 0;
             for (int i = 0; i < _rows.Length; i++)
-                if (state.Field(_humanId)[i].HasSpace)
-                    _rows[i].SetSelectable(_humanId, true);
+            {
+                bool mySpace = state.Field(_humanId)[i].HasSpace;
+                if (mySpace) _rows[i].SetSelectable(_humanId, true);
+
+                // 제거 가능(내 라인 공간 + 상대 같은 라인에 제거 가능한 동일 값)하면 상대 라인도 강조.
+                if (mySpace && state.Field(_aiId)[i].HasRemovableValue(v))
+                    _rows[i].SetSelectable(_aiId, true);
+            }
         }
 
         public void HighlightExtra(GameState state)

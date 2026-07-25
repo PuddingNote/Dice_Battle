@@ -109,7 +109,12 @@ namespace DiceBattle.UI
 
             if (_mode == InputMode.Primary)
             {
-                if (field != _human || !s.Field(_human)[line].HasSpace) return;
+                // 내 라인 클릭: 그대로 배치. 상대 라인 클릭: 그 라인이 "제거 가능"이면 동일하게 처리.
+                bool myLine = field == _human && s.Field(_human)[line].HasSpace;
+                bool removalTarget = field == Ai && s.Field(_human)[line].HasSpace
+                    && s.Field(Ai)[line].HasRemovableValue(s.PendingDice.Value);
+                if (!myLine && !removalTarget) return;
+
                 _mode = InputMode.None;
                 _board.ClearHighlights();
                 StartCoroutine(HumanPrimary(line));

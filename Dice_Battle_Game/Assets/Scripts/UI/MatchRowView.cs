@@ -74,7 +74,7 @@ namespace DiceBattle.UI
             for (int i = 0; i < Line.Capacity; i++) _oppCells[i] = new CellView(_oppButton.transform);
             _oppButton.onClick.AddListener(() => Clicked?.Invoke(_opp, Index));
 
-            // 승자 도장(점수 우상단). 스프라이트 없으면 임시로 ★ 표식.
+            // 승자 도장(점수 우상단). 기본 표식은 ★ 이며, 스킨에 스프라이트를 넣으면 교체된다.
             _myStamp = CreateStamp(_myScore.transform);
             _oppStamp = CreateStamp(_oppScore.transform);
 

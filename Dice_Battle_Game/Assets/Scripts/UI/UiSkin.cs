@@ -58,7 +58,8 @@ namespace DiceBattle.UI
         [Header("주사위 트레이(굴림판)")]
         public Sprite tray;
 
-        [Header("승자 라인 표식(따봉 등)")]
+        [Header("승자 라인 표식")]
+        [Tooltip("선택 사항. 비워두면 기본 표식인 ★ 를 사용한다(현재 채택된 표시).")]
         public Sprite winStamp;
 
         public Sprite DiceFace(DiceSide side, int value)

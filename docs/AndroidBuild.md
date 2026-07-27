@@ -7,32 +7,37 @@ Unity 6000.3.12f1 / URP 모바일 템플릿 기준. 실제 값 변경은 Unity E
 - `File > Build Profiles`(구 Build Settings)에서 **Android** 선택 후
   `Switch Platform`. 최초 전환 시 텍스처 재임포트로 시간이 걸린다.
 
-## 2. Player Settings 감사 결과 (2026-07 기준 현재 프로젝트 값)
-| 항목 | 현재 값 | 상태 | 조치 |
+## 2. Player Settings 감사 결과 (2026-07-27 기준 현재 프로젝트 값)
+| 항목 | 현재 값 | 상태 | 비고 |
 |------|---------|------|------|
-| Company Name | `DefaultCompany` | ⚠️ | 팀/개발자명으로 변경 |
-| Product Name | `Dice_Battle_Game` | ▲ | 선택(예: Dice Battle) |
-| **Package Name** | `com.UnityTechnologies.com.unity.template.urpblank` | ❌ | **템플릿 기본값 → 반드시 `com.<company>.dicebattle` 로 변경** |
+| Company Name | `onePixel` | ✅ | |
+| Product Name | `Dice Battle` | ✅ | |
+| **Package Name** | `com.onepixel.dicebattle` | ✅ | 전부 소문자(관례). **출시 후 변경 불가이므로 확정된 값** |
 | Scripting Backend (Android) | **IL2CPP** | ✅ | 유지 |
 | Target Architectures | **ARM64** | ✅ | 유지 (Play 필수) |
 | Minimum API Level | API 25 | ✅ | 유지 |
-| Target API Level | `0` = Automatic | ▲ | 출시 시 Play 요구 최소치 확인 |
+| Target API Level | `0` = Automatic | ▲ | 출시 직전 Play 요구치(API 35) 충족 확인 |
 | Api Compatibility Level | .NET Standard 2.1 | ✅ | 유지 |
-| Active Input Handling | Input System(New) | ✅ | 유지 (UI 입력 모듈과 일치) |
+| Active Input Handling | Input System(New) | ✅ | UI 입력 모듈과 일치 |
+| Strip Engine Code | 켜짐 | ✅ | 용량 절감 |
+| Version / Version Code | `0.1.0` / `1` | ▲ | 릴리스마다 versionCode 증가 필수 |
+| Unity 스플래시 | 켜짐 | ▲ | Personal 라이선스는 제거 불가 |
 
-> ✅ 이미 올바름 / ▲ 확인 권장 / ⚠️·❌ 변경 필요.
-> **가장 중요: Package Name이 URP 템플릿 기본값이라 반드시 바꿔야 스토어 등록/설치가 정상.**
+> ✅ 이미 올바름 / ▲ 확인 권장 / ❌ 변경 필요.
 
 ## 3. 화면/입력
-- **Orientation (변경 필요)**: 현재 `Default Orientation = Auto Rotation` 이고
-  **Portrait 포함 4방향 모두 허용** 상태. UI가 가로형이므로 세로를 막아야 한다.
-  - `Player > Resolution and Presentation`에서
-    **Default Orientation = Landscape Left** 로 고정,
-    또는 Auto Rotation 유지 시 **Portrait / Portrait Upside Down 체크 해제**,
-    Landscape Left/Right만 허용.
-  - 에디터 Game 뷰도 가로 종횡비(예: 1920x1080)로 확인.
-- **입력 (정상)**: Active Input Handling = Input System Package(New). UI가 새 Input System
-  기반이라 일치. (Both 여도 무방)
+- **Orientation (설정 완료)**: `Default Orientation = Auto Rotation` +
+  **Portrait / Portrait Upside Down 해제**, Landscape Left/Right 만 허용.
+  가로 고정이면서 양쪽 방향 회전은 되는 상태.
+- **Render Outside Safe Area = 켜짐**: 노치/카메라홀 영역까지 렌더한다.
+  가로모드에선 좌우 끝을 덮으므로, 레터박스 검은 여백이 흡수하는지
+  **실기기(특히 21:9 기기)에서 확인**할 것. 문제가 있으면 이 옵션을 끈다.
+- **해상도 대응**: `LetterboxScaler`가 1920x1080 컨텐츠를 균등 스케일하고
+  남는 영역은 검은 배경으로 채운다(코드 처리). 에디터 Game 뷰도 가로 비율로 확인.
+- **입력 (정상)**: Active Input Handling = Input System Package(New).
+
+## 3-1. 빌드 씬
+- `EditorBuildSettings`에 `Assets/Scenes/SampleScene.unity` 1개가 **enabled** 로 등록됨. ✅
 
 ## 4. 그래픽 / URP
 - Mobile 렌더러 에셋(`Assets/Settings/Mobile_RPAsset`, `Mobile_Renderer`)이
@@ -47,14 +52,18 @@ Unity 6000.3.12f1 / URP 모바일 템플릿 기준. 실제 값 변경은 Unity E
   keystore/비밀번호는 **git에 커밋하지 말 것** (.gitignore로 관리).
 
 ## 6. 최소 QA 체크리스트 (빌드 전)
-- [ ] **Package Name 변경** (템플릿 기본값 → 실제 값) — 최우선
-- [ ] Company Name 변경
-- [ ] **Orientation 가로 고정**(Portrait 해제)
-- [x] IL2CPP + ARM64 (이미 설정됨)
-- [x] .NET Standard 2.1 / New Input System (이미 설정됨)
+- [x] Package Name 변경 (`com.onepixel.dicebattle`)
+- [x] Company Name / Product Name 변경
+- [x] Orientation 가로 고정 (Portrait 해제)
+- [x] IL2CPP + ARM64
+- [x] .NET Standard 2.1 / New Input System
+- [x] 빌드 씬 등록 (SampleScene)
+- [ ] 플랫폼을 Android 로 Switch Platform
 - [ ] 콘솔 에러/경고 0
 - [ ] EditMode 테스트 전부 통과 (`Window > General > Test Runner`)
 - [ ] 실기기 터치 반응성 확인
+- [ ] 실기기 노치/세이프에어리어 확인 (3절 참고)
+- [ ] 한글 폰트 정상 출력 확인 (빌드 후 TMP Dynamic 아틀라스 동작)
 
 ## 7. 규칙/밸런스 검증 현황 (순수 로직)
 - EditMode + dotnet 검증 러너로 규칙/AI/점수 로직 106개 항목 통과.

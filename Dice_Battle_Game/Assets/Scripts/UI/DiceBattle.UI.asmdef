@@ -5,7 +5,8 @@
         "DiceBattle.Core",
         "DiceBattle.AI",
         "DiceBattle.Managers",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

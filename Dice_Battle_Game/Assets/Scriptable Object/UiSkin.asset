@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d32509ee5d131dc43b38e4fa0272ee86, type: 3}
   m_Name: UiSkin
   m_EditorClassIdentifier: DiceBattle.UI::DiceBattle.UI.UiSkin
+  fontAsset: {fileID: 0}
   font: {fileID: 0}
   screenBackground: {fileID: -1437103311, guid: 9f7c8462911decf4c9dee98c7a269999, type: 3}
   fieldPanel: {fileID: 0}

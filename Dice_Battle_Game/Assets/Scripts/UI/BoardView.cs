@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 using DiceBattle.Core;
 
 namespace DiceBattle.UI
@@ -19,13 +20,13 @@ namespace DiceBattle.UI
 
         private readonly MatchRowView[] _rows = new MatchRowView[Field.LineCount];
         private TrayView _tray;
-        private Text _levelText;
-        private Text _statusText;
+        private TMP_Text _levelText;
+        private TMP_Text _statusText;
 
         private GameObject _root;
         private RectTransform _fxLayer;
         private GameObject _resultOverlay;
-        private Text _resultText;
+        private TMP_Text _resultText;
         private Button _restartButton;
         private Button _menuButton;
 
@@ -74,7 +75,7 @@ namespace DiceBattle.UI
 
             _statusText = UiFactory.CreateText("Status", top.transform, "",
                 36, UiTheme.Label, TextAnchor.MiddleRight);
-            _statusText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            UiFactory.SetWrap(_statusText, true);
             UiFactory.SetFlexible(_statusText.gameObject);
         }
 
@@ -110,7 +111,7 @@ namespace DiceBattle.UI
 
             _resultText = UiFactory.CreateText("ResultText", overlay.transform, "",
                 56, UiTheme.Label, TextAnchor.MiddleCenter);
-            _resultText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            UiFactory.SetWrap(_resultText, true);
             UiFactory.SetSize(_resultText.gameObject, 900f, 640f);
 
             var buttonRow = UiFactory.CreateRect("Buttons", overlay.transform);

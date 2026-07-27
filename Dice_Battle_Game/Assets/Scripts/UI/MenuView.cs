@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 using DiceBattle.AI;
 
 namespace DiceBattle.UI
@@ -13,7 +14,7 @@ namespace DiceBattle.UI
     public sealed class MenuView : MonoBehaviour
     {
         private GameObject _root;
-        private Text _scoreText;
+        private TMP_Text _scoreText;
 
         /// <summary>등급 자동 난이도로 게임 시작.</summary>
         public event Action StartRequested;

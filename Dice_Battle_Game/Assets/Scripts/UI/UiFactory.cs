@@ -1,21 +1,64 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.TextCore.LowLevel;
+using TMPro;
 
 namespace DiceBattle.UI
 {
     /// <summary>코드로 uGUI 요소를 생성하는 헬퍼(런타임 UI 구성용).</summary>
     public static class UiFactory
     {
-        private static Font _font;
+        private static TMP_FontAsset _fontAsset;
 
-        /// <summary>스킨 폰트가 있으면 그것을, 없으면 Unity 6 내장 런타임 폰트(구 Arial 대체).</summary>
-        public static Font GetFont()
+        /// <summary>
+        /// 모든 텍스트가 쓰는 TMP 폰트 에셋.
+        /// 1) 스킨의 TMP 폰트 에셋(권장) → 2) 스킨의 TTF로 런타임 동적 생성 → 3) TMP 기본 폰트.
+        /// 동적(Dynamic) 모드라 한글 글리프를 필요할 때 아틀라스에 구워서 □□□이 나오지 않는다.
+        /// </summary>
+        public static TMP_FontAsset GetFontAsset()
         {
-            var skinFont = UiSkin.ActiveFont;
-            if (skinFont != null) return skinFont;
-            if (_font == null)
-                _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            return _font;
+            if (_fontAsset != null) return _fontAsset;
+
+            var skinAsset = UiSkin.ActiveFontAsset;
+            if (skinAsset != null) return _fontAsset = skinAsset;
+
+            var ttf = UiSkin.ActiveFont;
+            if (ttf != null)
+            {
+                _fontAsset = TMP_FontAsset.CreateFontAsset(
+                    ttf, 90, 9, GlyphRenderMode.SDFAA, 1024, 1024,
+                    AtlasPopulationMode.Dynamic, enableMultiAtlasSupport: true);
+                if (_fontAsset != null)
+                {
+                    _fontAsset.name = ttf.name + " (Runtime SDF)";
+                    return _fontAsset;
+                }
+            }
+
+            return _fontAsset = TMP_Settings.defaultFontAsset;
+        }
+
+        /// <summary>TextAnchor(구 Text) → TMP 정렬로 변환.</summary>
+        public static TextAlignmentOptions ToTmpAlignment(TextAnchor anchor)
+        {
+            switch (anchor)
+            {
+                case TextAnchor.UpperLeft: return TextAlignmentOptions.TopLeft;
+                case TextAnchor.UpperCenter: return TextAlignmentOptions.Top;
+                case TextAnchor.UpperRight: return TextAlignmentOptions.TopRight;
+                case TextAnchor.MiddleLeft: return TextAlignmentOptions.Left;
+                case TextAnchor.MiddleRight: return TextAlignmentOptions.Right;
+                case TextAnchor.LowerLeft: return TextAlignmentOptions.BottomLeft;
+                case TextAnchor.LowerCenter: return TextAlignmentOptions.Bottom;
+                case TextAnchor.LowerRight: return TextAlignmentOptions.BottomRight;
+                default: return TextAlignmentOptions.Center;
+            }
+        }
+
+        /// <summary>줄바꿈 허용 여부(구 horizontalOverflow 대체).</summary>
+        public static void SetWrap(TMP_Text text, bool wrap)
+        {
+            text.textWrappingMode = wrap ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
         }
 
         public static RectTransform CreateRect(string name, Transform parent)
@@ -42,18 +85,19 @@ namespace DiceBattle.UI
             return img;
         }
 
-        public static Text CreateText(string name, Transform parent, string content, int fontSize,
+        public static TextMeshProUGUI CreateText(string name, Transform parent, string content, int fontSize,
             Color color, TextAnchor anchor = TextAnchor.MiddleCenter)
         {
             var rt = CreateRect(name, parent);
-            var text = rt.gameObject.AddComponent<Text>();
-            text.font = GetFont();
+            var text = rt.gameObject.AddComponent<TextMeshProUGUI>();
+            var fontAsset = GetFontAsset();
+            if (fontAsset != null) text.font = fontAsset;
             text.text = content;
             text.fontSize = fontSize;
             text.color = color;
-            text.alignment = anchor;
-            text.horizontalOverflow = HorizontalWrapMode.Overflow;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.alignment = ToTmpAlignment(anchor);
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.overflowMode = TextOverflowModes.Overflow;
             text.raycastTarget = false;
             return text;
         }

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 using DiceBattle.Core;
 
 namespace DiceBattle.UI
@@ -25,9 +26,9 @@ namespace DiceBattle.UI
         private readonly Button _oppButton;
         private readonly Image _myBg;
         private readonly Image _oppBg;
-        private readonly Text _myScore;
-        private readonly Text _oppScore;
-        private readonly Text _arrow;
+        private readonly TMP_Text _myScore;
+        private readonly TMP_Text _oppScore;
+        private readonly TMP_Text _arrow;
 
         private Image _myStamp;
         private Image _oppStamp;
@@ -155,7 +156,7 @@ namespace DiceBattle.UI
             rt.localScale = Vector3.one;
         }
 
-        private void RenderSide(CellView[] cells, Line line, Text scoreText)
+        private void RenderSide(CellView[] cells, Line line, TMP_Text scoreText)
         {
             for (int i = 0; i < cells.Length; i++)
             {

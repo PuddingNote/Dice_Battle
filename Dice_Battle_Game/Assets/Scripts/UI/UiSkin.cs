@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace DiceBattle.UI
 {
@@ -20,7 +21,12 @@ namespace DiceBattle.UI
         public static UiSkin Active;
 
         [Header("전역")]
+        [Tooltip("권장: TMP 폰트 에셋(Font Asset Creator로 생성, Atlas Population = Dynamic)")]
+        public TMP_FontAsset fontAsset;
+
+        [Tooltip("대체: TTF 원본. fontAsset이 비어 있으면 이걸로 런타임에 동적 TMP 폰트를 만든다.")]
         public Font font;
+
         public Sprite screenBackground;
 
         [Header("패널")]
@@ -74,6 +80,7 @@ namespace DiceBattle.UI
         public static Sprite WinStamp => Active != null ? Active.winStamp : null;
         public static Sprite Face(DiceSide side, int value) => Active != null ? Active.DiceFace(side, value) : null;
         public static Font ActiveFont => Active != null ? Active.font : null;
+        public static TMP_FontAsset ActiveFontAsset => Active != null ? Active.fontAsset : null;
 
         /// <summary>
         /// 이미지에 스프라이트를 적용한다.

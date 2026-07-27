@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace DiceBattle.UI
 {
@@ -12,7 +13,7 @@ namespace DiceBattle.UI
         public RectTransform Rect { get; }
         private readonly Image _bg;
         private readonly Image _face;   // 주사위 눈 스프라이트(스킨 지정 시)
-        private readonly Text _label;   // 숫자(스프라이트 없을 때 폴백)
+        private readonly TMP_Text _label;   // 숫자(스프라이트 없을 때 폴백)
         private readonly Outline _outline;
 
         public CellView(Transform parent)

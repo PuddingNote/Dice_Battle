@@ -40,8 +40,81 @@
 | **라인 박스** | `Line Normal` | 드래그 1개 (선택 시엔 자동으로 초록 틴트) |
 | **주사위 트레이** | `Tray` | 드래그 1개 |
 
-> 나머지 슬롯(Screen Background, Center Panel, Field Panel, Cell*, Button, Font)은
+> 나머지 슬롯(Screen Background, Center Panel, Field Panel, Cell*, Button)은
 > 지금 레이아웃에선 필수가 아니다. 필요하면 나중에 채우면 된다.
+> 폰트 슬롯은 아래 [3-1. 폰트](#3-1-폰트-tmp) 참고.
+
+## 3-1. 폰트 (TMP)
+
+모든 텍스트는 **TextMeshPro(TMP)** 를 쓴다. 폰트는 `UiSkin` 에서 한 곳으로 지정한다.
+
+| 슬롯 | 타입 | 설명 |
+|------|------|------|
+| `Font Asset` | TMP_FontAsset | **권장.** Font Asset Creator로 미리 만든 SDF 폰트 |
+| `Font` | Font (TTF) | 대체. `Font Asset`이 비면 **런타임에 동적 TMP 폰트를 자동 생성** |
+
+### A. 가장 빠른 방법 (에디터 작업 없음)
+1. `Assets/Fonts/ONE Mobile POP.ttf` 를 `UiSkin` 의 **`Font`** 슬롯에 드래그
+2. 끝. 실행 시 `UiFactory.GetFontAsset()` 이 이 TTF로 **Dynamic** TMP 폰트 에셋을 만들어 쓴다.
+
+### B. 폰트 에셋을 직접 만들기
+
+> ⚠️ **Font Asset Creator를 쓰지 말 것.** 아래 우클릭 메뉴를 쓴다.
+> 이유는 [한글이 깨질 때](#한글이-으로-깨질-때) 참고.
+
+1. Project 창에서 `ONE Mobile POP.ttf` **선택**
+2. **우클릭 → Create → TextMeshPro → Font Asset → SDF** (`Ctrl+Shift+F12`)
+3. 생성된 에셋 선택 → Inspector에서 **`Multi Atlas Textures` 체크**
+4. `UiSkin` 의 **`Font Asset`** 슬롯에 드래그
+
+이 경로는 **Atlas Population Mode = Dynamic**, 원본 TTF 참조 연결, 빈 아틀라스(1024×1024)
+상태로 만들어준다. 실제로 화면에 나오는 글자만 실행 중에 아틀라스에 구워지므로
+한글 몇 자를 쓰든 문제가 없다.
+
+### 한글이 □ 으로 깨질 때
+
+**대부분의 원인: Static 아틀라스에 한글 전체를 구우려 한 것.**
+
+한글 완성형은 **11,172자**다. 1024×1024 아틀라스에 Padding 9로 구우면 Auto Sizing이
+1pt까지 줄여도 **2,400자 정도**밖에 안 들어가고 나머지는 조용히 버려진다.
+그 상태로 실행하면 이런 경고가 뜬다:
+
+```
+The character with Unicode value 이 was not found in the
+[ONE Mobile POP SDF] font asset or any potential fallbacks.
+```
+
+**→ 해결: 에셋을 지우고 위 B 절차(우클릭 → Create → TextMeshPro → Font Asset → SDF)로 다시 만든다.**
+
+에셋 파일(.asset)을 텍스트 에디터로 열어 확인할 수 있는 지표:
+
+| 필드 | 정상 | 문제 |
+|------|------|------|
+| `m_AtlasPopulationMode` | `1` (Dynamic) | `0` (Static) |
+| `m_SourceFontFile` | TTF 참조 있음 | `{fileID: 0}` |
+| `m_IsMultiAtlasTexturesEnabled` | `1` | `0` |
+
+기타 원인:
+
+| 원인 | 해결 |
+|------|------|
+| 폰트 슬롯이 비어 TMP 기본 폰트(LiberationSans, 한글 없음)를 씀 | `UiSkin` 의 `Font Asset` 또는 `Font` 지정 |
+| TMP Essential Resources 미임포트 | **Window → TextMeshPro → Import TMP Essential Resources** |
+| TTF의 `Include Font Data` 꺼짐 | Font 임포트 설정에서 켜기(Dynamic 생성에 필수) |
+
+> 현재 `ONE Mobile POP.ttf` 는 한글 완성형 전체 + `★ ◀ ▶ · →` 를 모두 포함하고 있어
+> (총 12,257 글자) 별도 폴백 폰트 없이 게임 내 모든 문자가 표시된다.
+
+### (선택) 빌드 용량을 줄이고 싶다면
+이 게임은 텍스트가 고정이라, 실제로 쓰는 글자만 Static으로 구울 수 있다.
+Font Asset Creator에서 `Character Set = Custom Characters` 에 아래를 넣는다:
+
+```
+0123456789LvAI점수등급선공랜덤다이스배틀게임시작테스트난이도직접선택당신차례라인을해주위놓세요제거성공추가특별본상대에배치하십니다패무승부종료메뉴로 ★◀▶=·
+```
+
+글자 수가 100자 남짓이라 1024×1024 / 90pt 에 충분히 들어간다.
+단, 나중에 문구를 추가하면 그 글자는 □ 가 되므로 개발 중에는 Dynamic 을 권장한다.
 
 ## 4. 스킨을 게임에 연결
 - 씬의 `GameBootstrap` 컴포넌트의 **Skin** 슬롯에 만든 UiSkin 에셋을 드래그

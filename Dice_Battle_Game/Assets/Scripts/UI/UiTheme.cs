@@ -55,6 +55,13 @@ namespace DiceBattle.UI
         public const int RootSpacing = 12;      // 필드/중앙 사이 간격
         public const float TrayWidth = 1040f;   // 하단 가로 트레이 폭
         public const float TrayHeight = 230f;    // 하단 가로 트레이 높이
+
+        // 리롤 버튼(트레이 좌측, 정사각형)
+        public const float RerollButtonSize = 130f;  // 버튼 한 변
+        public const float RerollButtonX = 260f;     // 화면 좌측 끝에서 버튼 중심까지
+        public const float RerollIconInset = 22f;    // 버튼 안쪽 아이콘 여백
+        // 리롤 선택 시 두 주사위 사이 간격(중심 간 거리)
+        public const float RerollPairGap = CellSize + 30f;
         public const int DiceFontSize = 72;
         public const int ScoreFontSize = 40;
         public const int StatusFontSize = 40;

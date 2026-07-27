@@ -36,6 +36,48 @@ namespace DiceBattle.UI
             gmGo.transform.SetParent(transform, false);
             var gm = gmGo.AddComponent<GameManager>();
             gm.Init(content, difficulty);
+
+            // 게임 UI를 만든 뒤 맨 위에 덮어, 1920x1080 밖으로 나간 연출(주사위 낙하/알까기 등)이
+            // 레터박스 영역에 보이지 않게 가린다.
+            CreateEdgeMasks(content);
+        }
+
+        /// <summary>
+        /// 컨텐츠(1920x1080) 바깥 상/하/좌/우를 덮는 검은 판.
+        /// Content의 자식이라 LetterboxScaler와 같은 배율로 스케일되고,
+        /// 마지막 자식이라 게임 UI보다 위에 그려진다.
+        /// </summary>
+        private static void CreateEdgeMasks(RectTransform content)
+        {
+            const float thickness = 3000f; // 어떤 화면 비율에서도 남는 영역을 덮을 만큼 크게
+
+            // 아래: 컨텐츠 하단선에 위쪽 끝을 붙이고 아래로 뻗는다.
+            CreateEdgeMask("MaskBottom", content,
+                new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 1f), thickness);
+            // 위
+            CreateEdgeMask("MaskTop", content,
+                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 0f), thickness);
+            // 좌
+            CreateEdgeMask("MaskLeft", content,
+                new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(1f, 0.5f), thickness);
+            // 우
+            CreateEdgeMask("MaskRight", content,
+                new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(0f, 0.5f), thickness);
+        }
+
+        private static void CreateEdgeMask(string name, RectTransform parent,
+            Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, float thickness)
+        {
+            var img = UiFactory.CreatePanel(name, parent, Color.black);
+            img.raycastTarget = false;
+
+            var rt = img.rectTransform;
+            rt.anchorMin = anchorMin;
+            rt.anchorMax = anchorMax;
+            rt.pivot = pivot;
+            // 늘어나는 축에서는 컨텐츠 너비/높이에 더해지는 여유분, 고정 축에서는 두께가 된다.
+            rt.sizeDelta = new Vector2(thickness, thickness);
+            rt.anchoredPosition = Vector2.zero;
         }
 
         private static Canvas CreateCanvas()

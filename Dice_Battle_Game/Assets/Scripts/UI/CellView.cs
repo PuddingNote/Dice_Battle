@@ -37,6 +37,12 @@ namespace DiceBattle.UI
             UiFactory.Stretch(_label.rectTransform);
         }
 
+        /// <summary>이 칸이 클릭을 받도록 할지(리롤 선택 시 트레이 주사위용).</summary>
+        public void SetRaycast(bool on)
+        {
+            _bg.raycastTarget = on;
+        }
+
         public void SetEmpty()
         {
             // 빈 칸은 슬롯 UI 없이 완전히 투명(주사위만 보이도록).

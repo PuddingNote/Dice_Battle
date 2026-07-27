@@ -12,7 +12,7 @@ namespace DiceBattle.UI
     /// </summary>
     public sealed class GameController : MonoBehaviour
     {
-        private enum InputMode { None, Primary, Extra }
+        private enum InputMode { None, Primary, Extra, RerollPick }
 
         private BoardView _board;
         private DifficultyConfig _difficulty;
@@ -20,6 +20,10 @@ namespace DiceBattle.UI
         private IAiStrategy _ai;
         private InputMode _mode = InputMode.None;
         private int _level = 3;
+
+        // 리롤: 판당 1회. 사용하면 그 판이 끝날 때까지 다시 못 쓴다.
+        private bool _rerollAvailable;
+        private Dice _rerollCandidate;
 
         private readonly PlayerId _human = PlayerId.One;
         private readonly System.Random _rng = new System.Random();
@@ -45,6 +49,8 @@ namespace DiceBattle.UI
             _board.LineClicked += OnLineClicked;
             _board.RestartClicked += OnRestart;
             _board.MenuClicked += () => MenuRequested?.Invoke();
+            _board.RerollClicked += OnRerollClicked;
+            _board.TrayDiceClicked += OnTrayDiceClicked;
         }
 
         /// <summary>지정 난이도로 새 대전 시작(선공 랜덤).</summary>
@@ -53,8 +59,12 @@ namespace DiceBattle.UI
             _level = level;
             StopAllCoroutines();
             _mode = InputMode.None;
+            _rerollAvailable = true; // 판마다 1회 충전
+            _rerollCandidate = null;
             _board.ClearFx();
             _board.HideResult();
+            _board.SetTrayPickable(false);
+            _board.SetRerollInteractable(false);
 
             // AI(P2)만 난이도 가중 주사위, 사람은 공정. 설정 에셋이 있으면 그 값을 사용.
             _game = new DiceGame(_difficulty != null
@@ -87,6 +97,7 @@ namespace DiceBattle.UI
         {
             StopAllCoroutines();
             _mode = InputMode.None;
+            _rerollCandidate = null;
             _board.AbortAnimations();
             _board.ClearHighlights();
             _board.HideResult();
@@ -105,6 +116,7 @@ namespace DiceBattle.UI
             {
                 _mode = InputMode.None;
                 _board.ClearHighlights();
+                _board.SetRerollInteractable(false);
                 _board.SetStatus("게임 종료");
                 // 라인별 승자 도장을 볼 수 있도록 잠시 뒤 결과 화면 표시.
                 StartCoroutine(EndGameAfterDelay());
@@ -132,6 +144,53 @@ namespace DiceBattle.UI
                 _board.SetStatus("제거 성공! 추가 특수 주사위\n본인/상대 라인에 배치하세요");
                 _board.HighlightExtra(s);
             }
+
+            // 리롤은 "내가 주사위를 배치해야 하는 타이밍"에만 누를 수 있다.
+            _board.SetRerollInteractable(_rerollAvailable && _mode != InputMode.None);
+        }
+
+        // ---- 리롤 ----
+
+        private void OnRerollClicked()
+        {
+            if (!_rerollAvailable) return;
+            if (_mode != InputMode.Primary && _mode != InputMode.Extra) return;
+
+            _rerollAvailable = false; // 이 판에서는 영구 소진
+            _mode = InputMode.None;
+            _board.SetRerollInteractable(false);
+            _board.ClearHighlights(); // 선택 중에는 라인 배치 불가
+            StartCoroutine(RerollRoutine());
+        }
+
+        private IEnumerator RerollRoutine()
+        {
+            _rerollCandidate = _game.RollRerollCandidate();
+            _board.SetStatus("리롤! 두 주사위 중 하나를 선택하세요");
+
+            yield return StartCoroutine(
+                _board.RollCandidateRoutine(_rerollCandidate.Value, _rerollCandidate.IsSpecial));
+
+            _mode = InputMode.RerollPick;
+        }
+
+        private void OnTrayDiceClicked(int index)
+        {
+            if (_mode != InputMode.RerollPick) return;
+            _mode = InputMode.None;
+            StartCoroutine(ResolveRerollPick(index));
+        }
+
+        private IEnumerator ResolveRerollPick(int index)
+        {
+            // 1 = 새로 굴린 후보를 선택 → 대기 주사위 교체. 0이면 기존 유지.
+            if (index == 1) _game.ApplyReroll(_rerollCandidate);
+            _rerollCandidate = null;
+
+            yield return StartCoroutine(_board.ResolvePickRoutine(index));
+
+            // 원래 배치 단계로 복귀(리롤 버튼은 소진되어 비활성).
+            SetHumanInput();
         }
 
         private void OnLineClicked(PlayerId field, int line)
@@ -148,6 +207,7 @@ namespace DiceBattle.UI
 
                 _mode = InputMode.None;
                 _board.ClearHighlights();
+                _board.SetRerollInteractable(false); // 배치 연출 중에는 잠금
                 StartCoroutine(HumanPrimary(line));
             }
             else if (_mode == InputMode.Extra)
@@ -155,6 +215,7 @@ namespace DiceBattle.UI
                 if (!s.Field(field)[line].HasSpace) return;
                 _mode = InputMode.None;
                 _board.ClearHighlights();
+                _board.SetRerollInteractable(false); // 배치 연출 중에는 잠금
                 StartCoroutine(HumanExtra(field, line));
             }
         }
@@ -261,6 +322,7 @@ namespace DiceBattle.UI
         {
             _mode = InputMode.None;
             _board.ClearHighlights();
+            _board.SetRerollInteractable(false); // 리롤은 플레이어 전용
 
             var s = _game.State;
             while (!s.IsGameOver && s.CurrentPlayer == Ai)

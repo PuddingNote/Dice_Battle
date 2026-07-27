@@ -115,6 +115,37 @@ namespace DiceBattle.Core
             EndTurn();
         }
 
+        /// <summary>
+        /// 리롤 후보를 하나 더 굴린다(판당 1회 제한 등 사용 횟수는 호출자가 관리).
+        /// 대기 주사위와 같은 조건(소유자·특수 여부)으로 굴리므로,
+        /// 선공 첫 특수 주사위를 리롤하면 특수 주사위가, 기본 주사위면 기본 주사위가 나온다.
+        /// 이 메서드는 상태를 바꾸지 않는다. 후보를 고르면 <see cref="ApplyReroll"/>로 확정한다.
+        /// </summary>
+        public Dice RollRerollCandidate()
+        {
+            Dice pending = State.PendingDice;
+            if (pending == null)
+                throw new InvalidOperationException("대기 중인 주사위가 없어 리롤할 수 없다.");
+
+            int value = _roller.Roll(pending.Owner);
+            return new Dice(value, pending.IsSpecial, pending.Owner);
+        }
+
+        /// <summary>리롤 후보를 대기 주사위로 확정한다(기존 주사위를 고르면 호출하지 않는다).</summary>
+        public void ApplyReroll(Dice candidate)
+        {
+            if (candidate == null) throw new ArgumentNullException(nameof(candidate));
+
+            Dice pending = State.PendingDice;
+            if (pending == null)
+                throw new InvalidOperationException("대기 중인 주사위가 없다.");
+            if (candidate.Owner != pending.Owner || candidate.IsSpecial != pending.IsSpecial)
+                throw new ArgumentException(
+                    "리롤 후보는 대기 주사위와 소유자·특수 여부가 같아야 한다.", nameof(candidate));
+
+            State.PendingDice = candidate;
+        }
+
         /// <summary>턴 종료 후 다음 진행자를 정하고 주사위를 굴린다. 종료 조건이면 결과 확정.</summary>
         private void EndTurn()
         {

@@ -52,6 +52,9 @@ namespace DiceBattle.UI
         [Header("버튼")]
         public Sprite button;
 
+        [Tooltip("리롤 버튼 안쪽 아이콘(원형 화살표). 비우면 임시로 ↻ 문자를 표시한다.")]
+        public Sprite rerollIcon;
+
         [Header("주사위 트레이(굴림판)")]
         public Sprite tray;
 
@@ -76,6 +79,7 @@ namespace DiceBattle.UI
         public static Sprite CellFilled => Active != null ? Active.cellFilled : null;
         public static Sprite CellSpecial => Active != null ? Active.cellSpecial : null;
         public static Sprite Button => Active != null ? Active.button : null;
+        public static Sprite RerollIcon => Active != null ? Active.rerollIcon : null;
         public static Sprite Tray => Active != null ? Active.tray : null;
         public static Sprite WinStamp => Active != null ? Active.winStamp : null;
         public static Sprite Face(DiceSide side, int value) => Active != null ? Active.DiceFace(side, value) : null;

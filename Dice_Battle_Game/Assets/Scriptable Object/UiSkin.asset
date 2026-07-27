@@ -37,5 +37,6 @@ MonoBehaviour:
   - {fileID: -1821518031, guid: 9ba2bf323aff22e44a98a7b8fa467edb, type: 3}
   - {fileID: 295419808, guid: 1106aa49559e8274d80291c36d7c0848, type: 3}
   button: {fileID: -1824982554, guid: 180e7786def29c34bb1736b538aa7f37, type: 3}
+  rerollIcon: {fileID: 1370445807, guid: d98e646f813969d4c93a1dc622898491, type: 3}
   tray: {fileID: 1462395806, guid: ea27e41f38f6be841a9a853077849ccb, type: 3}
   winStamp: {fileID: 0}

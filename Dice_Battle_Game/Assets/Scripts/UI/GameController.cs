@@ -76,6 +76,22 @@ namespace DiceBattle.UI
 
         private void OnRestart() => StartMatch(_level);
 
+        /// <summary>아직 승부가 나지 않은 판이 진행 중인지.</summary>
+        public bool IsMatchActive => _game != null && !_game.State.IsGameOver;
+
+        /// <summary>
+        /// 진행 중인 판을 즉시 중단한다(뒤로가기로 메뉴 복귀 등).
+        /// AI 턴 코루틴과 연출이 메뉴 화면에서 계속 도는 것을 막는다.
+        /// </summary>
+        public void AbortMatch()
+        {
+            StopAllCoroutines();
+            _mode = InputMode.None;
+            _board.AbortAnimations();
+            _board.ClearHighlights();
+            _board.HideResult();
+        }
+
         private IEnumerator EndGameAfterDelay()
         {
             yield return new WaitForSeconds(EndGameDelay);

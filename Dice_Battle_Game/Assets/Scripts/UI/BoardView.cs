@@ -346,6 +346,13 @@ namespace DiceBattle.UI
                 Destroy(_fxLayer.GetChild(i).gameObject);
         }
 
+        /// <summary>진행 중인 연출(배치/제거/트레이/도장)을 모두 중단하고 FX를 정리한다.</summary>
+        public void AbortAnimations()
+        {
+            StopAllCoroutines();
+            ClearFx();
+        }
+
         private CellView SpawnFx(Vector3 worldPos, int value, bool special, DiceSide side)
         {
             var fx = new CellView(_fxLayer);

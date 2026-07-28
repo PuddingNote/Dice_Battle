@@ -125,8 +125,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: e1b74266365cb6d488d810670fc35bf6
-      internalID: -692877083
+      spriteID: 62c1309778f67f6458b0733261da524b
+      internalID: 1077970182
       vertices: []
       indices: 
       edges: []
@@ -135,7 +135,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: fb3ac8f2ea9d97e4fa96155378d7175d
+    spriteID: 80fe3fb512c160d4884be71de249b24d
     internalID: 0
     vertices: []
     indices: 
@@ -145,7 +145,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      dice_white_red_4_0: -692877083
+      dice_white_red_4_0: 1077970182
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -118,15 +118,15 @@ TextureImporter:
         width: 512
         height: 512
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 88, y: 88, z: 88, w: 88}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 5d8337177b91614459bef9546c5103a6
-      internalID: 224581305
+      spriteID: 51faa338783d99940847fc9b9c2b23da
+      internalID: 849228239
       vertices: []
       indices: 
       edges: []
@@ -135,7 +135,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 554aa5b192ad19945bde7474c70e603b
+    spriteID: f68aa2bf65117934896c59e320de953f
     internalID: 0
     vertices: []
     indices: 
@@ -145,7 +145,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      dice_white_green_1_0: 224581305
+      dice_white_green_1_0: 849228239
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

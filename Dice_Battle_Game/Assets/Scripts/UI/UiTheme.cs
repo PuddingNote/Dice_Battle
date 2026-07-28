@@ -65,5 +65,7 @@ namespace DiceBattle.UI
         public const int DiceFontSize = 72;
         public const int ScoreFontSize = 40;
         public const int StatusFontSize = 40;
+        // 상단 중앙 표시("점수 (Lv.난이도)") 글자 크기 — 이 값만 바꾸면 된다.
+        public const int HeaderFontSize = 60;
     }
 }

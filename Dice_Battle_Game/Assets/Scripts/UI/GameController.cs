@@ -74,7 +74,7 @@ namespace DiceBattle.UI
                 ? _difficulty.CreateAi(level)
                 : new LeveledAiStrategy(level);
 
-            _board.SetLevelInfo(level);
+            _board.SetHeader(PlayerProgress.Score, level);
 
             // 선공 랜덤 → 선공의 첫 주사위는 특수(기획서 9번).
             PlayerId first = _rng.Next(2) == 0 ? PlayerId.One : PlayerId.Two;
@@ -117,7 +117,6 @@ namespace DiceBattle.UI
                 _mode = InputMode.None;
                 _board.ClearHighlights();
                 _board.SetRerollInteractable(false);
-                _board.SetStatus("게임 종료");
                 // 라인별 승자 도장을 볼 수 있도록 잠시 뒤 결과 화면 표시.
                 StartCoroutine(EndGameAfterDelay());
                 return;
@@ -135,13 +134,11 @@ namespace DiceBattle.UI
             if (s.Phase == TurnPhase.AwaitingPrimaryPlacement)
             {
                 _mode = InputMode.Primary;
-                _board.SetStatus("당신 차례\n라인을 선택해 주사위를 놓으세요");
                 _board.HighlightPrimary(s);
             }
             else if (s.Phase == TurnPhase.AwaitingExtraPlacement)
             {
                 _mode = InputMode.Extra;
-                _board.SetStatus("제거 성공! 추가 특수 주사위\n본인/상대 라인에 배치하세요");
                 _board.HighlightExtra(s);
             }
 
@@ -166,7 +163,6 @@ namespace DiceBattle.UI
         private IEnumerator RerollRoutine()
         {
             _rerollCandidate = _game.RollRerollCandidate();
-            _board.SetStatus("리롤! 두 주사위 중 하나를 선택하세요");
 
             yield return StartCoroutine(
                 _board.RollCandidateRoutine(_rerollCandidate.Value, _rerollCandidate.IsSpecial));
@@ -328,11 +324,6 @@ namespace DiceBattle.UI
             while (!s.IsGameOver && s.CurrentPlayer == Ai)
             {
                 // 이번 손패(주사위)는 트레이에 굴려져 표시된 상태. 인지할 시간을 준 뒤 행동.
-                var die = s.PendingDice;
-                if (s.Phase == TurnPhase.AwaitingExtraPlacement)
-                    _board.SetStatus($"상대(AI) 추가 주사위 {die.Value}");
-                else
-                    _board.SetStatus($"상대(AI) 차례\n주사위 {die.Value}");
                 yield return new WaitForSeconds(AiThinkDelay);
 
                 if (s.Phase == TurnPhase.AwaitingPrimaryPlacement)

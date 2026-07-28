@@ -10,7 +10,7 @@ namespace DiceBattle.UI
 {
     /// <summary>
     /// 보드 전체 뷰(가로형).
-    /// 상단: 난이도/상태 / 중앙: 3줄(내 라인 [점수 ◀▶ 점수] 상대 라인) / 하단: 가로 주사위 트레이.
+    /// 상단: 점수(Lv.난이도) / 중앙: 3줄(내 라인 [점수 ◀▶ 점수] 상대 라인) / 하단: 가로 주사위 트레이.
     /// 런타임에 코드로 UI를 구성한다.
     /// </summary>
     public sealed class BoardView : MonoBehaviour
@@ -20,8 +20,7 @@ namespace DiceBattle.UI
 
         private readonly MatchRowView[] _rows = new MatchRowView[Field.LineCount];
         private TrayView _tray;
-        private TMP_Text _levelText;
-        private TMP_Text _statusText;
+        private TMP_Text _headerText;
 
         private GameObject _root;
         private RectTransform _fxLayer;
@@ -73,20 +72,16 @@ namespace DiceBattle.UI
             BuildResultOverlay(bg.rectTransform);
         }
 
+        /// <summary>상단 중앙에 "점수 (Lv.난이도)" 한 줄만 표시한다.</summary>
         private void BuildTopBar(Transform parent)
         {
             var top = UiFactory.CreateRect("TopBar", parent);
-            UiFactory.AddHorizontalLayout(top.gameObject, 16, new RectOffset(12, 12, 0, 0));
+            UiFactory.AddHorizontalLayout(top.gameObject, 0, new RectOffset(12, 12, 0, 0));
             UiFactory.SetPreferredHeight(top.gameObject, 96f);
 
-            _levelText = UiFactory.CreateText("Level", top.transform, "",
-                UiTheme.ScoreFontSize, UiTheme.WinText, TextAnchor.MiddleLeft);
-            UiFactory.SetSize(_levelText.gameObject, 320f, 92f);
-
-            _statusText = UiFactory.CreateText("Status", top.transform, "",
-                36, UiTheme.Label, TextAnchor.MiddleRight);
-            UiFactory.SetWrap(_statusText, true);
-            UiFactory.SetFlexible(_statusText.gameObject);
+            _headerText = UiFactory.CreateText("Header", top.transform, "",
+                UiTheme.HeaderFontSize, UiTheme.Label, TextAnchor.MiddleCenter);
+            UiFactory.SetFlexible(_headerText.gameObject);
         }
 
         private void BuildRows(Transform parent)
@@ -226,9 +221,8 @@ namespace DiceBattle.UI
             _tray.ShowPending(state.PendingDice, state.CurrentPlayer == _humanId);
         }
 
-        public void SetStatus(string message) => _statusText.text = message;
-
-        public void SetLevelInfo(int level) => _levelText.text = $"AI 난이도  Lv{level}";
+        /// <summary>상단 중앙 표시 갱신: 플레이어 점수와 이번 판의 AI 난이도.</summary>
+        public void SetHeader(int score, int level) => _headerText.text = $"{score} (Lv.{level})";
 
         // ---- 하이라이트 ----
 

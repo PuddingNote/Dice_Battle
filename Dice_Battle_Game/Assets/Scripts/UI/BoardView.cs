@@ -300,6 +300,7 @@ namespace DiceBattle.UI
             var cur = SpawnFx(start, placingValue, placingSpecial, placerSide);
 
             // 1) 트레이에서 1초 부들부들
+            AudioManager.PlayDiceRemoveStart();
             yield return Shake(cur.Rect, 1.0f, 8f);
 
             // 첫 타겟 방향으로 가속 돌진, 끝이 맞닿는 지점에서 정지
@@ -340,6 +341,7 @@ namespace DiceBattle.UI
                 flyR.Add(cur.Rect); flyA.Add(cur.Rect.position);
                 flyB.Add(cur.Rect.position + dir * knockDist);
             }
+            AudioManager.PlayDiceRemoveHit();
             yield return MoveMany(flyR, flyA, flyB, knockDur, easeOut: false); // 등속
 
             for (int i = 0; i < preCount; i++) if (preRemoved[i]) DestroyFx(ghosts[i]);
@@ -388,6 +390,7 @@ namespace DiceBattle.UI
         public void AbortAnimations()
         {
             StopAllCoroutines();
+            AudioManager.StopDiceShake(); // 굴림 코루틴이 끊겨도 소리는 남으므로 직접 정리
             ClearFx();
             SetTrayPickable(false);
             SetRerollInteractable(false);
@@ -492,6 +495,7 @@ namespace DiceBattle.UI
 
             _resultText.text = $"{headline}\n\n{lines}\n{scoreLine}";
             _resultOverlay.SetActive(true);
+            AudioManager.PlayRoundEnd();
         }
 
         private static PlayerId LineResultToPlayer(LineResult r)

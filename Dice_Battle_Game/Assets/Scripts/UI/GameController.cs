@@ -19,7 +19,6 @@ namespace DiceBattle.UI
         private DiceGame _game;
         private IAiStrategy _ai;
         private InputMode _mode = InputMode.None;
-        private int _level = 3;
 
         // 리롤: 판당 1회. 사용하면 그 판이 끝날 때까지 다시 못 쓴다.
         private bool _rerollAvailable;
@@ -56,7 +55,6 @@ namespace DiceBattle.UI
         /// <summary>지정 난이도로 새 대전 시작(선공 랜덤).</summary>
         public void StartMatch(int level)
         {
-            _level = level;
             StopAllCoroutines();
             _mode = InputMode.None;
             _rerollAvailable = true; // 판마다 1회 충전
@@ -84,7 +82,11 @@ namespace DiceBattle.UI
             BeginTurn();
         }
 
-        private void OnRestart() => StartMatch(_level);
+        /// <summary>
+        /// "다시 하기"는 직전 판의 난이도가 아니라 <b>지금 등급</b>으로 다시 시작한다.
+        /// 이전 판 결과로 등급이 오르내렸을 수 있기 때문이다(메뉴의 "게임 시작"과 동일 기준).
+        /// </summary>
+        private void OnRestart() => StartMatch(PlayerProgress.Level);
 
         /// <summary>아직 승부가 나지 않은 판이 진행 중인지.</summary>
         public bool IsMatchActive => _game != null && !_game.State.IsGameOver;
@@ -263,12 +265,14 @@ namespace DiceBattle.UI
 
             if (res.RemovalOccurred)
             {
+                // 제거 연출은 자체 사운드(떨림/충돌)를 BoardView에서 낸다.
                 yield return StartCoroutine(_board.RemovalFxRoutine(
                     actor, line, value, special, side, ownInsert, special,
                     opp, preValues, preSides, preSpecial, preRemoved));
             }
             else
             {
+                AudioManager.PlayDicePlace();
                 yield return StartCoroutine(_board.PlaceGroupedFxRoutine(
                     actor, line, ownInsert, value, special, side, sv, ss, sp));
             }
@@ -290,6 +294,7 @@ namespace DiceBattle.UI
             CaptureShift(lineModel, insert, out var sv, out var ss, out var sp);
 
             _game.PlaceExtra(targetField, line);
+            AudioManager.PlayDicePlace();
             yield return StartCoroutine(_board.PlaceGroupedFxRoutine(
                 targetField, line, insert, value, special, side, sv, ss, sp));
             _board.Render(s);

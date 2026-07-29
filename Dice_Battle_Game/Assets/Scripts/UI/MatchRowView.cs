@@ -46,7 +46,8 @@ namespace DiceBattle.UI
             UiFactory.AddHorizontalLayout(row.gameObject, 12, new RectOffset(20, 20, 6, 6));
 
             // 내 칸 묶음(좌측): 안쪽(오른쪽=중앙)부터 index 0 이 되도록 역순 생성.
-            _myButton = UiFactory.CreateButton($"MyGroup_{index}", row.transform, UiTheme.LineNormal);
+            // 라인은 클릭음 대신 "주사위 배치" 소리를 내므로 기본 클릭음을 붙이지 않는다.
+            _myButton = UiFactory.CreateButton($"MyGroup_{index}", row.transform, UiTheme.LineNormal, clickSound: false);
             _myBg = _myButton.GetComponent<Image>();
             UiFactory.SetSize(_myButton.gameObject, UiTheme.LineBoxWidth, UiTheme.LineBoxHeight);
             UiFactory.AddHorizontalLayout(_myButton.gameObject, (int)UiTheme.CellSpacing, new RectOffset(0, 0, 0, 0));
@@ -67,7 +68,7 @@ namespace DiceBattle.UI
             UiFactory.SetSize(_oppScore.gameObject, 90f, UiTheme.CellSize);
 
             // 상대 칸 묶음(우측): 안쪽(왼쪽=중앙)부터 index 0.
-            _oppButton = UiFactory.CreateButton($"OppGroup_{index}", row.transform, UiTheme.LineNormal);
+            _oppButton = UiFactory.CreateButton($"OppGroup_{index}", row.transform, UiTheme.LineNormal, clickSound: false);
             _oppBg = _oppButton.GetComponent<Image>();
             UiFactory.SetSize(_oppButton.gameObject, UiTheme.LineBoxWidth, UiTheme.LineBoxHeight);
             UiFactory.AddHorizontalLayout(_oppButton.gameObject, (int)UiTheme.CellSpacing, new RectOffset(0, 0, 0, 0));

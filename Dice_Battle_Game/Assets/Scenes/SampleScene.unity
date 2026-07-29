@@ -463,6 +463,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: DiceBattle.UI::DiceBattle.UI.GameBootstrap
   skin: {fileID: 11400000, guid: 690afd5a7be55134b915207b63575d10, type: 2}
   difficulty: {fileID: 11400000, guid: 97a367913f61d6842adcb6543b2e4dcc, type: 2}
+  sounds: {fileID: 11400000, guid: e4ed37a17f005e4408d593ef5ca7613c, type: 2}
 --- !u!4 &1820679296
 Transform:
   m_ObjectHideFlags: 0

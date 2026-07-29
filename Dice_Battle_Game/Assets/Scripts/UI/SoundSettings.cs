@@ -16,8 +16,10 @@ namespace DiceBattle.UI
         private const string BgmVolumeKey = "dicebattle.sound.bgmVolume";
         private const string SfxVolumeKey = "dicebattle.sound.sfxVolume";
 
-        private const float DefaultBgmVolume = 0.6f;
-        private const float DefaultSfxVolume = 0.8f;
+        // 저장된 값이 없는 첫 실행 때 쓰는 기본 볼륨(슬라이더 0~1 기준, 20% / 50%).
+        // 음원마다 원본 크기가 달라 BGM을 많이 낮춰 둔다.
+        private const float DefaultBgmVolume = 0.2f;
+        private const float DefaultSfxVolume = 0.5f;
 
         /// <summary>설정이 바뀔 때마다 발생.</summary>
         public static event Action Changed;

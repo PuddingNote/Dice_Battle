@@ -52,6 +52,7 @@ namespace DiceBattle.UI
                 int index = i;
                 var button = rt.gameObject.AddComponent<Button>();
                 button.transition = Selectable.Transition.None;
+                button.onClick.AddListener(AudioManager.PlayButton); // 리롤 주사위 선택도 클릭음
                 button.onClick.AddListener(() => DiceClicked?.Invoke(index));
                 _buttons[i] = button;
 
@@ -79,6 +80,7 @@ namespace DiceBattle.UI
         private void StopAnim()
         {
             if (_co != null) { _runner.StopCoroutine(_co); _co = null; }
+            AudioManager.StopDiceShake(); // 굴림 도중 끊기면 소리도 같이 끊는다
         }
 
         private void ResetDie(int i)
@@ -216,6 +218,8 @@ namespace DiceBattle.UI
 
         private IEnumerator RollFlicks(CellView cell, DiceSide side)
         {
+            AudioManager.PlayDiceShake();
+
             var rt = cell.Rect;
             const int flicks = 8;
             for (int i = 0; i < flicks; i++)
@@ -225,6 +229,9 @@ namespace DiceBattle.UI
                 rt.localScale = new Vector3(s, s, 1f);
                 yield return new WaitForSeconds(0.045f);
             }
+
+            // 눈이 확정되는 순간 굴림 소리를 끊는다(원본이 연출보다 길다).
+            AudioManager.StopDiceShake();
         }
 
         private static IEnumerator Move(RectTransform rt, Vector2 from, Vector2 to, float dur)

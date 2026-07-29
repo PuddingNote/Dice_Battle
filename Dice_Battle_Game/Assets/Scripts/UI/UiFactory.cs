@@ -102,12 +102,17 @@ namespace DiceBattle.UI
             return text;
         }
 
-        public static Button CreateButton(string name, Transform parent, Color color)
+        /// <summary>
+        /// 버튼 생성. 기본적으로 클릭음이 자동으로 붙는다.
+        /// 라인 박스처럼 다른 소리를 내야 하는 버튼은 clickSound=false 로 만든다.
+        /// </summary>
+        public static Button CreateButton(string name, Transform parent, Color color, bool clickSound = true)
         {
             var img = CreatePanel(name, parent, color);
             UiSkin.Apply(img, UiSkin.Button, color); // 스킨 버튼 스프라이트(있으면)
             var btn = img.gameObject.AddComponent<Button>();
             btn.targetGraphic = img;
+            if (clickSound) btn.onClick.AddListener(AudioManager.PlayButton);
             return btn;
         }
 

@@ -17,9 +17,15 @@ namespace DiceBattle.UI
         [Tooltip("선택: 난이도(등급별 AI 수치) 에셋. 비우면 코드 기본값 사용.")]
         [SerializeField] private DifficultyConfig difficulty;
 
+        [Tooltip("선택: 사운드 모음 에셋. 비우면 소리 없이 동작한다.")]
+        [SerializeField] private SoundBank sounds;
+
         private void Start()
         {
             UiSkin.Active = skin; // 스킨 지정 시 스프라이트 적용, null이면 단색 폴백
+
+            // UI보다 먼저 만들어야 버튼 생성 시점부터 클릭음이 붙는다.
+            AudioManager.Create(transform, sounds);
 
             Canvas canvas = CreateCanvas();
             EnsureEventSystem();

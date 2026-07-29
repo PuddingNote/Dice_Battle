@@ -16,6 +16,9 @@
 # Recordings can get excessive in size
 /[Rr]ecordings/
 
+# Unity 빌드 임시 폴더
+/.utmp/
+
 # Uncomment this line if you wish to ignore the asset store tools plugin
 # /[Aa]ssets/AssetStoreTools*
 

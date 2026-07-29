@@ -73,6 +73,11 @@ crashlytics-build.properties
 # .slnx (Visual Studio solution)
 *.slnx
 
+# 릴리즈 서명 키스토어 — 절대 커밋 금지.
+# 유출되면 앱을 사칭할 수 있고, 분실하면 앱을 영원히 업데이트할 수 없다.
+*.keystore
+*.jks
+
 # OS files
 .DS_Store
 Thumbs.db

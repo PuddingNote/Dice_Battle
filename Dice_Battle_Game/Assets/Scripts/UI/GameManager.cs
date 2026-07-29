@@ -7,7 +7,7 @@ namespace DiceBattle.UI
     /// <summary>
     /// 화면 흐름 관리: 메인 메뉴 ↔ 게임.
     /// 등급(점수)에 따라 난이도가 자동 결정되고, 매 판 결과로 점수가 갱신된다.
-    /// (테스트용으로 메뉴에서 난이도 직접 선택도 가능)
+    /// 설정 버튼(우측 상단)은 두 화면 공통이라 여기서 만들어 항상 띄워 둔다.
     /// 모바일 뒤로가기 버튼(=Escape)도 여기서 처리한다.
     /// </summary>
     public sealed class GameManager : MonoBehaviour
@@ -18,6 +18,8 @@ namespace DiceBattle.UI
         private BoardView _board;
         private GameController _controller;
         private ConfirmDialogView _dialog;
+        private SettingsPanelView _settings;
+        private ManualView _manual;
 
         private bool _inMenu = true;
 
@@ -41,12 +43,34 @@ namespace DiceBattle.UI
             _menu = menuGo.AddComponent<MenuView>();
             _menu.Build(canvasRoot);
             _menu.StartRequested += () => StartGame(PlayerProgress.Level); // 등급 자동 난이도
-            _menu.LevelSelected += StartGame;                              // 테스트: 직접 선택
+            _menu.ManualRequested += () => _manual.Open();
+
+            // 설정 버튼은 메인 화면·게임 화면 위에 항상 떠 있어야 하므로 둘 다 만든 뒤에 생성한다.
+            CreateSettingsButton(canvasRoot);
+            _settings = new SettingsPanelView(canvasRoot);
+            // 설명서는 설정 창 위에 겹쳐 열린다(닫으면 설정 창으로 돌아옴).
+            _manual = new ManualView(canvasRoot);
+            _settings.ManualRequested += () => _manual.Open();
 
             // 뒤로가기 다이얼로그는 항상 최상단에 오도록 마지막에 생성.
             _dialog = new ConfirmDialogView(canvasRoot);
 
             ShowMenu();
+        }
+
+        /// <summary>우측 상단 고정 위치의 설정 버튼(두 화면 공통).</summary>
+        private void CreateSettingsButton(RectTransform canvasRoot)
+        {
+            var button = UiFactory.CreateIconButton("SettingsButton", canvasRoot,
+                UiSkin.SettingsIcon, "설정", UiTheme.IconButtonSize, UiTheme.IconButtonInset, 30);
+
+            var rt = button.Rect;
+            rt.anchorMin = new Vector2(1f, 1f);
+            rt.anchorMax = new Vector2(1f, 1f);
+            rt.pivot = new Vector2(1f, 1f);
+            rt.anchoredPosition = new Vector2(-UiTheme.IconButtonMarginX, -UiTheme.IconButtonMarginY);
+
+            button.Button.onClick.AddListener(() => _settings.Open());
         }
 
         private void ShowMenu()
@@ -82,10 +106,20 @@ namespace DiceBattle.UI
 
         private void OnBackPressed()
         {
-            // 이미 열려 있으면 뒤로가기는 '닫기'로 동작.
+            // 이미 열려 있으면 뒤로가기는 '닫기'로 동작(위에 떠 있는 것부터).
             if (_dialog.IsOpen)
             {
                 _dialog.Close();
+                return;
+            }
+            if (_manual.IsOpen)
+            {
+                _manual.Close();
+                return;
+            }
+            if (_settings.IsOpen)
+            {
+                _settings.Close();
                 return;
             }
 

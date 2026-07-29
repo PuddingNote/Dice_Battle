@@ -111,6 +111,155 @@ namespace DiceBattle.UI
             return btn;
         }
 
+        /// <summary>
+        /// 아이콘이 들어가는 정사각형 버튼. 스킨 아이콘이 없으면 대체 문구를 대신 보여준다.
+        /// (리롤/설정/페이지 넘김 버튼이 같은 모양을 쓴다.)
+        /// </summary>
+        public static IconButton CreateIconButton(string name, Transform parent, Sprite icon,
+            string fallbackText, float size, float inset, int fallbackFontSize)
+        {
+            var button = CreateButton(name, parent, UiTheme.Button);
+            var rt = button.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(size, size);
+
+            var iconImage = CreatePanel("Icon", button.transform, Color.white);
+            iconImage.raycastTarget = false;
+            Stretch(iconImage.rectTransform);
+            iconImage.rectTransform.offsetMin = new Vector2(inset, inset);
+            iconImage.rectTransform.offsetMax = new Vector2(-inset, -inset);
+
+            var label = CreateText("Label", button.transform, fallbackText, fallbackFontSize, Color.white);
+            Stretch(label.rectTransform);
+
+            if (icon != null)
+            {
+                iconImage.sprite = icon;
+                iconImage.type = Image.Type.Simple;
+                iconImage.preserveAspect = true;
+                label.gameObject.SetActive(false);
+            }
+            else
+            {
+                iconImage.enabled = false; // 아이콘이 없으면 문구만 보인다
+            }
+
+            return new IconButton(button, iconImage, label);
+        }
+
+        /// <summary>
+        /// 화면 가운데에 뜨는 창(모달) 패널을 만들고, 내용을 넣을 본체를 돌려준다.
+        /// 스킨에 창 이미지가 있으면 그걸 쓰고, 없으면 코드로 만든 둥근 사각형 2겹(테두리+본체)을 쓴다.
+        /// </summary>
+        public static RectTransform CreateWindow(string name, Transform parent, float width, float height)
+        {
+            var outer = CreatePanel(name, parent, UiTheme.WindowBorder);
+            var ort = outer.rectTransform;
+            ort.anchorMin = new Vector2(0.5f, 0.5f);
+            ort.anchorMax = new Vector2(0.5f, 0.5f);
+            ort.pivot = new Vector2(0.5f, 0.5f);
+            ort.sizeDelta = new Vector2(width, height);
+            ort.anchoredPosition = Vector2.zero;
+
+            if (UiSkin.WindowPanel != null)
+            {
+                UiSkin.Apply(outer, UiSkin.WindowPanel, UiTheme.WindowPanel);
+                return ort;
+            }
+
+            ApplyRounded(outer, null, UiTheme.WindowBorder);
+
+            var body = CreatePanel("Body", outer.transform, UiTheme.WindowPanel);
+            ApplyRounded(body, null, UiTheme.WindowPanel);
+            Stretch(body.rectTransform);
+            body.rectTransform.offsetMin = new Vector2(10f, 10f);
+            body.rectTransform.offsetMax = new Vector2(-10f, -10f);
+            return body.rectTransform;
+        }
+
+        /// <summary>
+        /// 가로 볼륨 슬라이더. 스킨 이미지가 없으면 코드로 만든 둥근 트랙 + 원형 손잡이를 쓴다.
+        /// 값 범위는 0~1이다.
+        /// </summary>
+        public static Slider CreateSlider(string name, Transform parent)
+        {
+            float track = UiTheme.SliderTrackHeight;
+            float handle = UiTheme.SliderHandleSize;
+
+            var root = CreateRect(name, parent);
+            var slider = root.gameObject.AddComponent<Slider>();
+
+            // 트랙이 얇아 손가락으로 집기 어려우므로, 슬라이더 영역 전체를 잡을 수 있게 투명 판을 깐다.
+            var hitArea = root.gameObject.AddComponent<Image>();
+            hitArea.color = new Color(0f, 0f, 0f, 0f);
+
+            var background = CreatePanel("Background", root, UiTheme.SliderTrack);
+            ApplyRounded(background, UiSkin.SliderTrack, UiTheme.SliderTrack);
+            StretchHorizontalBand(background.rectTransform, 0f, track);
+
+            // 채워지는 구간. 손잡이가 양 끝에서 트랙 밖으로 나가지 않도록 좌우를 손잡이 반지름만큼 줄인다.
+            var fillArea = CreateRect("Fill Area", root);
+            StretchHorizontalBand(fillArea, -handle, track);
+            var fill = CreatePanel("Fill", fillArea, UiTheme.SliderFill);
+            ApplyRounded(fill, UiSkin.SliderFill, UiTheme.SliderFill);
+            fill.raycastTarget = false;
+            Stretch(fill.rectTransform);
+
+            var handleArea = CreateRect("Handle Slide Area", root);
+            StretchHorizontalBand(handleArea, -handle, 0f);
+            var handleImage = CreatePanel("Handle", handleArea, UiTheme.SliderHandle);
+            if (UiSkin.SliderHandle != null)
+            {
+                UiSkin.Apply(handleImage, UiSkin.SliderHandle, UiTheme.SliderHandle);
+            }
+            else
+            {
+                handleImage.sprite = UiSprites.Circle;
+                handleImage.type = Image.Type.Simple;
+                handleImage.color = UiTheme.SliderHandle;
+            }
+            var hrt = handleImage.rectTransform;
+            hrt.pivot = new Vector2(0.5f, 0.5f);
+            hrt.sizeDelta = new Vector2(handle, handle);
+
+            slider.fillRect = fill.rectTransform;
+            slider.handleRect = hrt;
+            slider.targetGraphic = handleImage;
+            slider.direction = Slider.Direction.LeftToRight;
+            slider.minValue = 0f;
+            slider.maxValue = 1f;
+            slider.wholeNumbers = false;
+            return slider;
+        }
+
+        /// <summary>부모 폭을 따라 늘어나되 세로로는 가운데 정렬된 띠 모양으로 배치한다.</summary>
+        private static void StretchHorizontalBand(RectTransform rt, float widthDelta, float height)
+        {
+            rt.anchorMin = new Vector2(0f, 0.5f);
+            rt.anchorMax = new Vector2(1f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(widthDelta, height);
+            rt.anchoredPosition = Vector2.zero;
+        }
+
+        /// <summary>
+        /// 이미지에 둥근 모서리를 입힌다.
+        /// 스킨 스프라이트가 있으면 그걸 쓰고(원본색), 없으면 코드 생성 스프라이트에 지정 색을 입힌다.
+        /// </summary>
+        public static void ApplyRounded(Image img, Sprite skin, Color color)
+        {
+            if (img == null) return;
+            if (skin != null)
+            {
+                img.sprite = skin;
+                img.type = Image.Type.Sliced;
+                img.color = Color.white;
+                return;
+            }
+            img.sprite = UiSprites.RoundedRect;
+            img.type = Image.Type.Sliced;
+            img.color = color;
+        }
+
         /// <summary>RectTransform을 부모에 꽉 채운다.</summary>
         public static void Stretch(RectTransform rt)
         {

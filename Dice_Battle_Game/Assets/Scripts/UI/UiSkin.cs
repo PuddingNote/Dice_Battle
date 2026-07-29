@@ -52,8 +52,23 @@ namespace DiceBattle.UI
         [Header("버튼")]
         public Sprite button;
 
-        [Tooltip("리롤 버튼 안쪽 아이콘(원형 화살표). 비우면 임시로 ↻ 문자를 표시한다.")]
+        [Tooltip("리롤 버튼 안쪽 아이콘(원형 화살표). 비우면 임시로 '리롤' 문구를 표시한다.")]
         public Sprite rerollIcon;
+
+        [Tooltip("설정 버튼 안쪽 아이콘(톱니바퀴). 비우면 임시로 '설정' 문구를 표시한다.")]
+        public Sprite settingsIcon;
+
+        [Tooltip("설명서 페이지 넘김 화살표(오른쪽 방향 1장). 왼쪽은 좌우 반전해 재사용한다.")]
+        public Sprite pageArrowIcon;
+
+        [Header("창(설정/설명서)")]
+        [Tooltip("창 배경. 비우면 코드로 만든 둥근 사각형을 쓴다.")]
+        public Sprite windowPanel;
+
+        [Header("볼륨 슬라이더")]
+        public Sprite sliderTrack;
+        public Sprite sliderFill;
+        public Sprite sliderHandle;
 
         [Header("주사위 트레이(굴림판)")]
         public Sprite tray;
@@ -81,6 +96,12 @@ namespace DiceBattle.UI
         public static Sprite CellSpecial => Active != null ? Active.cellSpecial : null;
         public static Sprite Button => Active != null ? Active.button : null;
         public static Sprite RerollIcon => Active != null ? Active.rerollIcon : null;
+        public static Sprite SettingsIcon => Active != null ? Active.settingsIcon : null;
+        public static Sprite PageArrowIcon => Active != null ? Active.pageArrowIcon : null;
+        public static Sprite WindowPanel => Active != null ? Active.windowPanel : null;
+        public static Sprite SliderTrack => Active != null ? Active.sliderTrack : null;
+        public static Sprite SliderFill => Active != null ? Active.sliderFill : null;
+        public static Sprite SliderHandle => Active != null ? Active.sliderHandle : null;
         public static Sprite Tray => Active != null ? Active.tray : null;
         public static Sprite WinStamp => Active != null ? Active.winStamp : null;
         public static Sprite Face(DiceSide side, int value) => Active != null ? Active.DiceFace(side, value) : null;

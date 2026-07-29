@@ -44,6 +44,20 @@
 > 지금 레이아웃에선 필수가 아니다. 필요하면 나중에 채우면 된다.
 > 폰트 슬롯은 아래 [3-1. 폰트](#3-1-폰트-tmp) 참고.
 
+### 아이콘/창 슬롯 (비워두면 임시 표시로 동작)
+
+| 슬롯 | 쓰이는 곳 | 비었을 때 |
+|------|-----------|-----------|
+| `Reroll Icon` | 트레이 왼쪽 리롤 버튼 | "리롤" 문구 |
+| `Settings Icon` | 우측 상단 설정 버튼(톱니바퀴) | "설정" 문구 |
+| `Page Arrow Icon` | 설명서 페이지 넘김 화살표 | ◀ ▶ 문자 |
+| `Window Panel` | 설정/설명서 창 배경 | 코드로 만든 둥근 사각형 |
+| `Slider Track` / `Slider Fill` / `Slider Handle` | 볼륨 슬라이더 | 둥근 트랙 + 원형 손잡이 |
+
+- 아이콘은 **정사각 투명 PNG** 1장이면 된다(권장 128×128 이상). 버튼 안쪽에 여백을 두고 들어간다.
+- `Page Arrow Icon`은 **오른쪽 방향 1장만** 넣으면 된다. 왼쪽 화살표는 좌우 반전해 재사용한다.
+- `Window Panel`, `Slider Track/Fill`은 9-slice(Border) 설정을 해야 모서리가 늘어나지 않는다.
+
 ## 3-1. 폰트 (TMP)
 
 모든 텍스트는 **TextMeshPro(TMP)** 를 쓴다. 폰트는 `UiSkin` 에서 한 곳으로 지정한다.
@@ -139,3 +153,11 @@ Font Asset Creator에서 `Character Set = Custom Characters` 에 아래를 넣�
 
 ## 7. 색상/치수 조정
 - 색/폰트 크기/셀·트레이 크기 등은 `Assets/Scripts/UI/UiTheme.cs` 상수에서 변경.
+- 자주 만지는 값
+  - `HeaderFontSize` — 게임 화면 상단 중앙 "점수 (Lv.난이도)"
+  - `MenuTitleFontSize` / `MenuScoreFontSize` / `MenuStartFontSize` / `MenuManualFontSize` — 메인 메뉴 글자
+  - `MenuStartButtonWidth/Height`, `MenuManualButtonWidth/Height` — 메뉴 버튼 크기
+  - `MenuBottomPadding` — 메뉴 버튼이 화면 아래에 얼마나 붙는지
+  - `IconButtonSize` / `IconButtonMarginX` / `IconButtonMarginY` — 우측 상단 설정 버튼 크기·여백
+  - `MenuHeadSpacerWeight` / `MenuTitleSpacerWeight` — 메뉴에서 제목 위·아래 여백 비율
+  - `SettingsWindowWidth/Height`, `ManualWindowWidth/Height` — 창 크기

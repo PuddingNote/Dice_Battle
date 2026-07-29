@@ -43,6 +43,20 @@ namespace DiceBattle.UI
         public static readonly Color Overlay = new Color32(0, 0, 0, 250);
         public static readonly Color Button = new Color(0.25f, 0.45f, 0.85f, 1f);
 
+        // 창(모달) 뒤를 덮는 반투명 막 — 뒤쪽 화면이 비쳐 보인다.
+        public static readonly Color Backdrop = new Color32(0, 0, 0, 190);
+        // 창 본체/테두리 (나무 느낌의 갈색 계열)
+        public static readonly Color WindowPanel = new Color(0.19f, 0.13f, 0.09f, 1f);
+        public static readonly Color WindowBorder = new Color(0.46f, 0.32f, 0.19f, 1f);
+
+        // 슬라이더(볼륨)
+        public static readonly Color SliderTrack = new Color(0.14f, 0.10f, 0.06f, 1f);
+        public static readonly Color SliderFill = new Color(0.85f, 0.62f, 0.25f, 1f);
+        public static readonly Color SliderHandle = new Color(0.97f, 0.87f, 0.62f, 1f);
+        // ON/OFF 토글 버튼 색
+        public static readonly Color ToggleOn = new Color(0.62f, 0.42f, 0.18f, 1f);
+        public static readonly Color ToggleOff = new Color(0.24f, 0.20f, 0.17f, 1f);
+
         // 치수(레퍼런스 해상도 1920x1080 가로형 기준)
         public const float ReferenceWidth = 1920f;
         public const float ReferenceHeight = 1080f;
@@ -67,5 +81,41 @@ namespace DiceBattle.UI
         public const int StatusFontSize = 40;
         // 상단 중앙 표시("점수 (Lv.난이도)") 글자 크기 — 이 값만 바꾸면 된다.
         public const int HeaderFontSize = 60;
+
+        // 우측 상단 아이콘 버튼(설정) — 메인 화면/게임 화면 공통 위치
+        public const float IconButtonSize = 110f;      // 버튼 한 변
+        public const float IconButtonMarginX = 126f;   // 화면 오른쪽 끝에서 버튼까지 여백
+        public const float IconButtonMarginY = 26f;    // 화면 위쪽 끝에서 버튼까지 여백
+        public const float IconButtonInset = 20f;      // 버튼 안쪽 아이콘 여백
+
+        // ---- 메인 메뉴 (글자 크기/버튼 크기는 여기서 조절) ----
+        public const int MenuTitleFontSize = 92;    // "다이스 배틀"
+        public const int MenuScoreFontSize = 52;    // "점수 80 · 등급 Lv1 (선공: 랜덤)"
+        public const int MenuStartFontSize = 52;    // "게임 시작"
+        public const int MenuManualFontSize = 52;   // "게임 설명서"
+        public const float MenuStartButtonWidth = 540f;
+        public const float MenuStartButtonHeight = 120f;
+        public const float MenuManualButtonWidth = 540f;
+        public const float MenuManualButtonHeight = 120f;
+        public const int MenuBottomPadding = 90;    // 시작 버튼이 얼마나 아래에 붙는지
+        // 남는 세로 공간을 제목 위(Head)와 제목~점수 사이(Title)가 이 비율로 나눠 갖는다.
+        // Title 쪽을 키우면 제목이 위로 올라가고, Head 쪽을 키우면 제목이 아래로 내려온다.
+        public const float MenuHeadSpacerWeight = 1f;
+        public const float MenuTitleSpacerWeight = 1f;
+
+        // ---- 설정 창 ----
+        public const float SettingsWindowWidth = 1180f;
+        public const float SettingsWindowHeight = 700f;
+        public const int SettingsTitleFontSize = 60;
+        public const int SettingsLabelFontSize = 44;
+        public const float SliderTrackHeight = 34f;
+        public const float SliderHandleSize = 58f;
+
+        // ---- 게임 설명서 창 ----
+        public const float ManualWindowWidth = 1480f;
+        public const float ManualWindowHeight = 860f;
+        public const int ManualTitleFontSize = 58;
+        public const int ManualBodyFontSize = 40;
+        public const float ManualArrowSize = 100f;
     }
 }

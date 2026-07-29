@@ -29,9 +29,7 @@ namespace DiceBattle.UI
         private Button _restartButton;
         private Button _menuButton;
 
-        private Button _rerollButton;
-        private Image _rerollIcon;
-        private TMP_Text _rerollLabel;
+        private IconButton _reroll;
 
         public event Action<PlayerId, int> LineClicked;
         public event Action RestartClicked;
@@ -112,55 +110,24 @@ namespace DiceBattle.UI
         /// <summary>트레이 좌측의 정사각형 리롤 버튼. 레이아웃에서 빼고 좌측에 직접 배치한다.</summary>
         private void BuildRerollButton(RectTransform trayRow)
         {
-            // 스프라이트가 있으면 원본색(흰색) 그대로, 없으면 임시로 기본 버튼 색.
-            _rerollButton = UiFactory.CreateButton("RerollButton", trayRow, UiTheme.Button);
-            UiFactory.IgnoreLayout(_rerollButton.gameObject);
+            _reroll = UiFactory.CreateIconButton("RerollButton", trayRow, UiSkin.RerollIcon, "리롤",
+                UiTheme.RerollButtonSize, UiTheme.RerollIconInset, 34);
+            UiFactory.IgnoreLayout(_reroll.Button.gameObject);
 
-            var rt = _rerollButton.GetComponent<RectTransform>();
+            var rt = _reroll.Rect;
             rt.anchorMin = new Vector2(0f, 0.5f);
             rt.anchorMax = new Vector2(0f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(UiTheme.RerollButtonSize, UiTheme.RerollButtonSize);
             rt.anchoredPosition = new Vector2(UiTheme.RerollButtonX, 0f);
 
-            // 안쪽 아이콘(원형 화살표) 자리. 스프라이트가 없으면 임시 텍스트를 대신 표시한다.
-            _rerollIcon = UiFactory.CreatePanel("Icon", _rerollButton.transform, Color.white);
-            _rerollIcon.raycastTarget = false;
-            var irt = _rerollIcon.rectTransform;
-            UiFactory.Stretch(irt);
-            float inset = UiTheme.RerollIconInset;
-            irt.offsetMin = new Vector2(inset, inset);
-            irt.offsetMax = new Vector2(-inset, -inset);
-
-            _rerollLabel = UiFactory.CreateText("Label", _rerollButton.transform, "리롤", 34, Color.white);
-            UiFactory.Stretch(_rerollLabel.rectTransform);
-
-            if (UiSkin.RerollIcon != null)
-            {
-                _rerollIcon.sprite = UiSkin.RerollIcon;
-                _rerollIcon.type = Image.Type.Simple;
-                _rerollIcon.preserveAspect = true;
-                _rerollLabel.gameObject.SetActive(false);
-            }
-            else
-            {
-                _rerollIcon.enabled = false; // 아이콘 없으면 텍스트만
-            }
-
-            _rerollButton.onClick.AddListener(() => RerollClicked?.Invoke());
+            _reroll.Button.onClick.AddListener(() => RerollClicked?.Invoke());
             SetRerollInteractable(false);
         }
 
         /// <summary>리롤 버튼 활성/비활성. 비활성일 때는 아이콘/문구도 함께 흐려진다.</summary>
         public void SetRerollInteractable(bool on)
         {
-            if (_rerollButton == null) return;
-            _rerollButton.interactable = on;
-
-            // 아이콘·문구는 버튼의 targetGraphic이 아니라 자동으로 흐려지지 않으므로 직접 처리.
-            Color tint = on ? Color.white : new Color(1f, 1f, 1f, 0.3f);
-            if (_rerollIcon != null) _rerollIcon.color = tint;
-            if (_rerollLabel != null) _rerollLabel.color = tint;
+            if (_reroll != null) _reroll.SetInteractable(on);
         }
 
         /// <summary>리롤 후보를 굴려 기존 주사위 우측에 붙이는 연출(완료까지 대기).</summary>

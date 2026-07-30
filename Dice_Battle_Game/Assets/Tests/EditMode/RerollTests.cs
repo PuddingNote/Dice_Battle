@@ -36,6 +36,33 @@ namespace DiceBattle.Tests
         }
 
         [Test]
+        public void Reroll_Candidate_Never_Matches_Current_Dice()
+        {
+            // 선공 특수 4 대기 → 4가 두 번 더 나와도 건너뛰고 6을 후보로 준다.
+            var roller = new QueueDiceRoller(4, 4, 4, 6);
+            var game = new DiceGame(roller);
+            game.Start(PlayerId.One);
+
+            Dice candidate = game.RollRerollCandidate();
+
+            Assert.AreEqual(6, candidate.Value, "기존과 같은 눈은 건너뛰어야 한다.");
+        }
+
+        [Test]
+        public void Reroll_Candidate_Differs_Even_If_Roller_Is_Stuck()
+        {
+            // 큐가 소진되면 QueueDiceRoller는 계속 1을 준다.
+            // 대기 주사위도 1이라 다시 굴려도 영원히 같은 값 → 그래도 다른 눈을 보장해야 한다.
+            var roller = new QueueDiceRoller(1);
+            var game = new DiceGame(roller);
+            game.Start(PlayerId.One);
+
+            Dice candidate = game.RollRerollCandidate();
+
+            Assert.AreNotEqual(1, candidate.Value, "롤러가 한 값에 갇혀도 같은 눈을 주면 안 된다.");
+        }
+
+        [Test]
         public void RollRerollCandidate_Does_Not_Change_State()
         {
             var roller = new QueueDiceRoller(4, 6);

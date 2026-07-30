@@ -15,6 +15,9 @@ namespace DiceBattle.Core
     /// </summary>
     public sealed class DiceGame
     {
+        /// <summary>리롤 후보가 기존 값과 겹칠 때 다시 굴려보는 최대 횟수.</summary>
+        private const int RerollAttempts = 8;
+
         private readonly IDiceRoller _roller;
 
         public GameState State { get; }
@@ -119,6 +122,7 @@ namespace DiceBattle.Core
         /// 리롤 후보를 하나 더 굴린다(판당 1회 제한 등 사용 횟수는 호출자가 관리).
         /// 대기 주사위와 같은 조건(소유자·특수 여부)으로 굴리므로,
         /// 선공 첫 특수 주사위를 리롤하면 특수 주사위가, 기본 주사위면 기본 주사위가 나온다.
+        /// 후보는 <b>기존 주사위와 항상 다른 눈</b>이다(같은 눈이면 선택지가 되지 못한다).
         /// 이 메서드는 상태를 바꾸지 않는다. 후보를 고르면 <see cref="ApplyReroll"/>로 확정한다.
         /// </summary>
         public Dice RollRerollCandidate()
@@ -127,8 +131,25 @@ namespace DiceBattle.Core
             if (pending == null)
                 throw new InvalidOperationException("대기 중인 주사위가 없어 리롤할 수 없다.");
 
-            int value = _roller.Roll(pending.Owner);
+            int value = RollDifferentFrom(pending.Owner, pending.Value);
             return new Dice(value, pending.IsSpecial, pending.Owner);
+        }
+
+        /// <summary>
+        /// <paramref name="exclude"/>가 아닌 눈이 나올 때까지 다시 굴린다.
+        /// 결과 분포는 나머지 5개 눈에 대한 균등 분포와 같다.
+        /// </summary>
+        private int RollDifferentFrom(PlayerId owner, int exclude)
+        {
+            // 결정적 롤러(테스트용)가 한 값만 돌려주면 무한 루프가 되므로 횟수를 제한한다.
+            for (int i = 0; i < RerollAttempts; i++)
+            {
+                int value = _roller.Roll(owner);
+                if (value != exclude) return value;
+            }
+
+            // 롤러가 한 값에 갇힌 경우. "다른 눈"이라는 약속을 지키는 쪽을 택한다.
+            return exclude % Dice.MaxValue + 1;
         }
 
         /// <summary>리롤 후보를 대기 주사위로 확정한다(기존 주사위를 고르면 호출하지 않는다).</summary>

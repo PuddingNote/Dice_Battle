@@ -20,8 +20,16 @@ namespace DiceBattle.UI
         [Tooltip("선택: 사운드 모음 에셋. 비우면 소리 없이 동작한다.")]
         [SerializeField] private SoundBank sounds;
 
+        /// <summary>
+        /// 목표 프레임. 안드로이드는 QualitySettings의 vSync를 무시하고 이 값만 본다.
+        /// 지정하지 않으면 플랫폼 기본값(30fps)으로 돌아가 에디터보다 눈에 띄게 끊긴다.
+        /// </summary>
+        private const int TargetFrameRate = 60;
+
         private void Start()
         {
+            Application.targetFrameRate = TargetFrameRate;
+
             UiSkin.Active = skin; // 스킨 지정 시 스프라이트 적용, null이면 단색 폴백
 
             // UI보다 먼저 만들어야 버튼 생성 시점부터 클릭음이 붙는다.

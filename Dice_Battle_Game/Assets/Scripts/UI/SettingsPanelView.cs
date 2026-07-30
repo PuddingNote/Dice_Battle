@@ -29,6 +29,9 @@ namespace DiceBattle.UI
         /// <summary>설정 창 안의 "게임 설명서" 버튼을 눌렀을 때(게임 중에도 규칙을 볼 수 있게).</summary>
         public event Action ManualRequested;
 
+        /// <summary>설정 창 안의 "크레딧" 버튼을 눌렀을 때.</summary>
+        public event Action CreditsRequested;
+
         public SettingsPanelView(RectTransform parent)
         {
             var backdrop = UiFactory.CreateStretchPanel("SettingsPanel", parent, UiTheme.Backdrop);
@@ -57,26 +60,32 @@ namespace DiceBattle.UI
             var spacer = UiFactory.CreateRect("Spacer", window);
             UiFactory.SetFlexibleHeight(spacer.gameObject, 1f);
 
-            // 아래 줄: [게임 설명서] [닫기]
+            // 아래 줄: [게임 설명서] [크레딧] [닫기]
             var buttonRow = UiFactory.CreateRect("ButtonRow", window);
-            UiFactory.AddHorizontalLayout(buttonRow.gameObject, 40, new RectOffset(0, 0, 0, 0));
+            UiFactory.AddHorizontalLayout(buttonRow.gameObject, 30, new RectOffset(0, 0, 0, 0));
             UiFactory.SetPreferredHeight(buttonRow.gameObject, 120f);
 
-            var manualButton = UiFactory.CreateButton("ManualButton", buttonRow.transform, UiTheme.CenterPanel);
-            UiFactory.SetSize(manualButton.gameObject, 380f, 110f);
-            var manualLabel = UiFactory.CreateText("Label", manualButton.transform, "게임 설명서",
-                UiTheme.StatusFontSize, Color.white);
-            UiFactory.Stretch(manualLabel.rectTransform);
+            var manualButton = BuildFooterButton(buttonRow, "ManualButton", "게임 설명서", UiTheme.CenterPanel);
             manualButton.onClick.AddListener(() => ManualRequested?.Invoke());
 
-            var closeButton = UiFactory.CreateButton("CloseButton", buttonRow.transform, UiTheme.Button);
-            UiFactory.SetSize(closeButton.gameObject, 360f, 110f);
-            var closeLabel = UiFactory.CreateText("Label", closeButton.transform, "닫기",
-                UiTheme.StatusFontSize, Color.white);
-            UiFactory.Stretch(closeLabel.rectTransform);
+            var creditsButton = BuildFooterButton(buttonRow, "CreditsButton", "크레딧", UiTheme.CenterPanel);
+            creditsButton.onClick.AddListener(() => CreditsRequested?.Invoke());
+
+            var closeButton = BuildFooterButton(buttonRow, "CloseButton", "닫기", UiTheme.Button);
             closeButton.onClick.AddListener(Close);
 
             _root.SetActive(false);
+        }
+
+        /// <summary>창 아래쪽 가로 줄에 들어가는 글자 버튼. 세 개가 같은 폭을 쓴다.</summary>
+        private static Button BuildFooterButton(RectTransform row, string name, string text, Color color)
+        {
+            var button = UiFactory.CreateButton(name, row.transform, color);
+            UiFactory.SetSize(button.gameObject, UiTheme.SettingsFooterButtonWidth, 110f);
+            var label = UiFactory.CreateText("Label", button.transform, text,
+                UiTheme.StatusFontSize, Color.white);
+            UiFactory.Stretch(label.rectTransform);
+            return button;
         }
 
         /// <summary>"[이름] [ON/OFF] [────●────]" 한 줄.</summary>

@@ -160,4 +160,5 @@ Font Asset Creator에서 `Character Set = Custom Characters` 에 아래를 넣�
   - `MenuBottomPadding` — 메뉴 버튼이 화면 아래에 얼마나 붙는지
   - `IconButtonSize` / `IconButtonMarginX` / `IconButtonMarginY` — 우측 상단 설정 버튼 크기·여백
   - `MenuHeadSpacerWeight` / `MenuTitleSpacerWeight` — 메뉴에서 제목 위·아래 여백 비율
-  - `SettingsWindowWidth/Height`, `ManualWindowWidth/Height` — 창 크기
+  - `SettingsWindowWidth/Height`, `ManualWindowWidth/Height`, `CreditsWindowWidth/Height` — 창 크기
+  - `CreditsBodyFontSize` — 크레딧 본문(링크가 길어 설명서 본문보다 작게 잡혀 있다)

@@ -110,6 +110,9 @@ namespace DiceBattle.UI
         public const int SettingsLabelFontSize = 44;
         public const float SliderTrackHeight = 34f;
         public const float SliderHandleSize = 58f;
+        // 아래 줄 [게임 설명서] [크레딧] [닫기] 공통 폭.
+        // 3칸 + 간격 2칸(30)이 창 안쪽 폭(창 너비 - 좌우 여백 60씩)에 들어가야 한다.
+        public const float SettingsFooterButtonWidth = 330f;
 
         // ---- 게임 설명서 창 ----
         public const float ManualWindowWidth = 1480f;
@@ -117,5 +120,12 @@ namespace DiceBattle.UI
         public const int ManualTitleFontSize = 58;
         public const int ManualBodyFontSize = 40;
         public const float ManualArrowSize = 100f;
+
+        // ---- 크레딧 창 ----
+        public const float CreditsWindowWidth = 1300f;
+        public const float CreditsWindowHeight = 760f;
+        public const int CreditsTitleFontSize = 58;
+        // 링크가 길어 본문은 설명서보다 작게 잡았다.
+        public const int CreditsBodyFontSize = 34;
     }
 }

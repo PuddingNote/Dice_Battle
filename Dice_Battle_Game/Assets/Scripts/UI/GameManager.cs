@@ -20,6 +20,7 @@ namespace DiceBattle.UI
         private ConfirmDialogView _dialog;
         private SettingsPanelView _settings;
         private ManualView _manual;
+        private CreditsView _credits;
 
         private bool _inMenu = true;
 
@@ -48,9 +49,11 @@ namespace DiceBattle.UI
             // 설정 버튼은 메인 화면·게임 화면 위에 항상 떠 있어야 하므로 둘 다 만든 뒤에 생성한다.
             CreateSettingsButton(canvasRoot);
             _settings = new SettingsPanelView(canvasRoot);
-            // 설명서는 설정 창 위에 겹쳐 열린다(닫으면 설정 창으로 돌아옴).
+            // 설명서·크레딧은 설정 창 위에 겹쳐 열린다(닫으면 설정 창으로 돌아옴).
             _manual = new ManualView(canvasRoot);
             _settings.ManualRequested += () => _manual.Open();
+            _credits = new CreditsView(canvasRoot);
+            _settings.CreditsRequested += () => _credits.Open();
 
             // 뒤로가기 다이얼로그는 항상 최상단에 오도록 마지막에 생성.
             _dialog = new ConfirmDialogView(canvasRoot);
@@ -115,6 +118,11 @@ namespace DiceBattle.UI
             if (_manual.IsOpen)
             {
                 _manual.Close();
+                return;
+            }
+            if (_credits.IsOpen)
+            {
+                _credits.Close();
                 return;
             }
             if (_settings.IsOpen)

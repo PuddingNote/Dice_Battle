@@ -20,6 +20,7 @@ namespace DiceBattle.UI
         // [0] 항상 "현재 유효한" 주사위, [1] 리롤 후보.
         private readonly CellView[] _dice = new CellView[PairCount];
         private readonly Button[] _buttons = new Button[PairCount];
+        private readonly Image _highlight;
         private readonly float _slideX;
 
         private readonly System.Random _rng = new System.Random();
@@ -37,6 +38,8 @@ namespace DiceBattle.UI
             var tray = UiFactory.CreatePanel("Tray", parent, Color.white);
             UiSkin.Apply(tray, UiSkin.Tray, Color.white);
             UiFactory.SetSize(tray.gameObject, UiTheme.TrayWidth, UiTheme.TrayHeight);
+
+            _highlight = CreateHighlight(tray.transform);
 
             // 주사위는 레이아웃이 아닌 수동 위치로 두어 좌/우 이동 연출이 가능하게 한다.
             for (int i = 0; i < PairCount; i++)
@@ -64,6 +67,38 @@ namespace DiceBattle.UI
             _slideX = UiTheme.TrayWidth * 0.5f - UiTheme.CellSize * 0.5f - 60f;
         }
 
+        /// <summary>
+        /// 리롤 선택 중임을 알리는 트레이 테두리.
+        /// 라인 박스와 같은 스프라이트·같은 초록을 써서 "여기를 고르라"는 신호가 같은 의미로 읽히게 한다.
+        /// 주사위보다 먼저 만들어 주사위 뒤에 깔린다.
+        /// </summary>
+        private static Image CreateHighlight(Transform tray)
+        {
+            var img = UiFactory.CreatePanel("Highlight", tray, UiTheme.LineHighlightSolid);
+            img.raycastTarget = false;
+            UiFactory.Stretch(img.rectTransform);
+            float inset = UiTheme.TrayHighlightInset;
+            img.rectTransform.offsetMin = new Vector2(inset, inset);
+            img.rectTransform.offsetMax = new Vector2(-inset, -inset);
+
+            if (UiSkin.LineNormal != null)
+            {
+                img.sprite = UiSkin.LineNormal;
+                img.type = Image.Type.Sliced;
+                img.color = UiTheme.LineHighlightSolid;
+            }
+            else
+            {
+                // 스킨이 없을 때의 폴백. 테두리 이미지가 없으니 반투명 초록으로 채운다.
+                img.sprite = UiSprites.RoundedRect;
+                img.type = Image.Type.Sliced;
+                img.color = UiTheme.LineHighlight;
+            }
+
+            img.enabled = false;
+            return img;
+        }
+
         private RectTransform RectOf(int i) => _dice[i].Rect;
 
         /// <summary>현재 트레이 주사위의 월드 위치(배치 연출 시작점).</summary>
@@ -74,6 +109,7 @@ namespace DiceBattle.UI
         {
             StopAnim();
             _last = null;
+            SetPickable(false); // 트레이를 비우면 강조도 같이 꺼진다
             for (int i = 0; i < PairCount; i++) ResetDie(i);
         }
 
@@ -134,7 +170,7 @@ namespace DiceBattle.UI
             SetPickable(true);
         }
 
-        /// <summary>리롤 선택 중 두 주사위의 클릭 가능 여부.</summary>
+        /// <summary>리롤 선택 중 두 주사위의 클릭 가능 여부. 트레이 테두리 강조도 함께 켠다.</summary>
         public void SetPickable(bool on)
         {
             for (int i = 0; i < PairCount; i++)
@@ -142,6 +178,7 @@ namespace DiceBattle.UI
                 _dice[i].SetRaycast(on);
                 _buttons[i].interactable = on;
             }
+            _highlight.enabled = on;
         }
 
         /// <summary>

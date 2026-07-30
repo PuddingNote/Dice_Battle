@@ -69,6 +69,9 @@ namespace DiceBattle.UI
         public const int RootSpacing = 12;      // 필드/중앙 사이 간격
         public const float TrayWidth = 1040f;   // 하단 가로 트레이 폭
         public const float TrayHeight = 230f;    // 하단 가로 트레이 높이
+        // 리롤 선택 중 뜨는 트레이 강조 테두리를 트레이 안쪽으로 얼마나 들일지.
+        // 트레이 스프라이트에 여백이 있어 0이면 테두리가 살짝 떠 보인다. (0으로 하는게 오히려 더 괜찮음)
+        public const float TrayHighlightInset = 0f;
 
         // 리롤 버튼(트레이 좌측, 정사각형)
         public const float RerollButtonSize = 130f;  // 버튼 한 변

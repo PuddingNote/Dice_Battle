@@ -241,11 +241,14 @@ Android Studio의 SDK Manager로 해당 플랫폼을 설치한다.
 - [ ] AAB 형식
 - [ ] 콘솔 에러 0, EditMode 테스트 통과
 - [ ] 실기기 1회 플레이 확인
+- [ ] **출시 완료 후** 필요하면 `version.json`의 `minVersion` 상향 → [ForceUpdate.md](ForceUpdate.md)
+      (규칙·저장형식 변경, 치명적 버그 수정일 때만. **배포 전에 올리면 안 된다**)
 
 ---
 
 ## 9. 관련 문서
 
+- [ForceUpdate.md](ForceUpdate.md) — 강제 업데이트 운영 (매 업로드마다 확인)
 - [Monetization.md](Monetization.md) — 광고 설계 (비공개 테스트 기간 중 작업)
 - [AndroidBuild.md](AndroidBuild.md) — 안드로이드 빌드 설정 상세
 - [Skinning.md](Skinning.md) — UI 스킨/치수 조정

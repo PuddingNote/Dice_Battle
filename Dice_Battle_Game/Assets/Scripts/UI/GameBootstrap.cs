@@ -54,6 +54,10 @@ namespace DiceBattle.UI
             // 게임 UI를 만든 뒤 맨 위에 덮어, 1920x1080 밖으로 나간 연출(주사위 낙하/알까기 등)이
             // 레터박스 영역에 보이지 않게 가린다.
             CreateEdgeMasks(content);
+
+            // 강제 업데이트 검사. 조회는 비동기라 게임 진입을 막지 않고,
+            // 차단이 필요할 때만 모든 UI 위에 창이 덮인다.
+            VersionGate.Create(transform, content);
         }
 
         /// <summary>

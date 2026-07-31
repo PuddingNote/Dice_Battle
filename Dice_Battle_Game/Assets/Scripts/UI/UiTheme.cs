@@ -124,6 +124,14 @@ namespace DiceBattle.UI
         public const int ManualBodyFontSize = 40;
         public const float ManualArrowSize = 100f;
 
+        // ---- 강제 업데이트 창 ----
+        public const float UpdateWindowWidth = 1300f;
+        public const float UpdateWindowHeight = 640f;
+        public const int UpdateTitleFontSize = 62;
+        public const int UpdateBodyFontSize = 42;
+        public const float UpdateButtonWidth = 460f;
+        public const float UpdateButtonHeight = 130f;
+
         // ---- 크레딧 창 ----
         public const float CreditsWindowWidth = 1300f;
         public const float CreditsWindowHeight = 760f;

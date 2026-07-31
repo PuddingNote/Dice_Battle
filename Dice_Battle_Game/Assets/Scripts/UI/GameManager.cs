@@ -109,6 +109,14 @@ namespace DiceBattle.UI
 
         private void OnBackPressed()
         {
+            // 강제 업데이트 창이 떠 있으면 게임으로 돌아갈 길이 없다.
+            // 이 상태에서 다이얼로그를 열면 차단 창 위로 올라와 버리므로, 뒤로가기는 종료로만 동작한다.
+            if (VersionGate.IsBlocking)
+            {
+                AppExit.Quit();
+                return;
+            }
+
             // 이미 열려 있으면 뒤로가기는 '닫기'로 동작(위에 떠 있는 것부터).
             if (_dialog.IsOpen)
             {
@@ -133,7 +141,7 @@ namespace DiceBattle.UI
 
             if (_inMenu)
             {
-                _dialog.Open("게임을 종료할까요?", "뒤로가기", "게임 종료", QuitGame);
+                _dialog.Open("게임을 종료할까요?", "뒤로가기", "게임 종료", AppExit.Quit);
                 return;
             }
 
@@ -142,15 +150,6 @@ namespace DiceBattle.UI
                 ? "메인 메뉴로 돌아갈까요?\n진행 중인 판은 사라집니다."
                 : "메인 메뉴로 돌아갈까요?";
             _dialog.Open(message, "뒤로가기", "메인 메뉴로", ShowMenu);
-        }
-
-        private static void QuitGame()
-        {
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-#else
-            Application.Quit();
-#endif
         }
 
         private void OnMatchFinished(MatchOutcome outcome)

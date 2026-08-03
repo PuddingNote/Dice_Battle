@@ -83,6 +83,12 @@ Unity → **Player Settings → Publishing Settings → Keystore Manager → Cre
 지금 `Automatic (highest installed)`이라 빌드 머신에 설치된 SDK에 따라 결과가 달라진다.
 Play는 현재 **API 35(Android 15) 이상**을 요구한다(매년 8월 상향). 드롭다운에서 명시적으로 고른다.
 
+> **API 36(Android 16) 상향이 예정돼 있다.** 마감은 Play Console에서 직접 확인할 것.
+> 36부터는 **edge-to-edge 표시가 강제**되어 옵트아웃이 무시된다. 이 게임은 레터박스 +
+> `androidRenderOutsideSafeArea` 구조라 큰 문제는 없을 것으로 보이나,
+> **올린 뒤 최신 안드로이드 기기에서 화면 가장자리를 반드시 확인할 것.**
+> 광고 작업과 섞지 말고 별도 빌드로 올린다 — 문제가 나면 원인이 갈리지 않는다.
+
 목록에 원하는 버전이 없으면 SDK가 안 깔린 것이다.
 **Unity Hub → 설치 → 톱니 → 모듈 추가**에서 Android SDK/NDK Tools를 확인하거나,
 Android Studio의 SDK Manager로 해당 플랫폼을 설치한다.
@@ -230,6 +236,9 @@ Android Studio의 SDK Manager로 해당 플랫폼을 설치한다.
 - **노치/펀치홀** — `androidRenderOutsideSafeArea: 1` 상태에서 21:9 기기 표시.
 - **BGM 스트리밍** — 저사양 기기에서 끊김 여부.
 - **터치 반응/성능** — 특히 알까기 연출 구간의 프레임.
+- **버전 확인 통신** — 실기기에서 `version.json`을 실제로 읽는지 **미확인**.
+  fail-open이라 통신이 실패해도 게임은 똑같이 잘 돌아가서 화면만 봐서는 구분되지 않는다.
+  강제 업데이트가 안 먹는 것 같으면 여기부터 의심할 것 → [ForceUpdate.md](ForceUpdate.md) 5장
 
 ---
 

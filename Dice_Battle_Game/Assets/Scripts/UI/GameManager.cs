@@ -37,6 +37,7 @@ namespace DiceBattle.UI
             _controller.Init(_board, difficulty);
             _controller.MenuRequested += ShowMenu;
             _controller.MatchFinished += OnMatchFinished;
+            _controller.AdRerollRequested += OnAdRerollRequested;
 
             // 메뉴는 보드 위에 오도록 나중에 생성.
             var menuGo = new GameObject("MenuView");
@@ -150,6 +151,29 @@ namespace DiceBattle.UI
                 ? "메인 메뉴로 돌아갈까요?\n진행 중인 판은 사라집니다."
                 : "메인 메뉴로 돌아갈까요?";
             _dialog.Open(message, "뒤로가기", "메인 메뉴로", ShowMenu);
+        }
+
+        // ---- 광고 리롤 ----
+
+        /// <summary>
+        /// 기본 리롤을 소진한 뒤 리롤 버튼을 눌렀을 때.
+        /// 버튼을 누르자마자 광고가 뜨면 당황스러우므로 확인을 먼저 받는다.
+        /// </summary>
+        private void OnAdRerollRequested()
+        {
+            _dialog.Open("리롤을 모두 사용했습니다.\n광고를 보고 한 번 더 굴릴까요?",
+                "취소", "광고 보기",
+                () => AdManager.ShowRewarded(_controller.GrantAdReroll, OnAdRerollUnavailable));
+        }
+
+        /// <summary>
+        /// 광고가 뜨지 않았거나 도중에 닫은 경우.
+        /// 보상은 주지 않되 왜 안 됐는지는 알려준다(아무 반응이 없으면 고장으로 보인다).
+        /// </summary>
+        private void OnAdRerollUnavailable()
+        {
+            _dialog.Open("광고를 불러오지 못했습니다.\n잠시 후 다시 시도해 주세요.",
+                "닫기", "확인", null);
         }
 
         private void OnMatchFinished(MatchOutcome outcome)

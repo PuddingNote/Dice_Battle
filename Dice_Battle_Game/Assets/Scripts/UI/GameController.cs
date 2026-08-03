@@ -22,6 +22,8 @@ namespace DiceBattle.UI
 
         // 리롤: 판당 1회. 사용하면 그 판이 끝날 때까지 다시 못 쓴다.
         private bool _rerollAvailable;
+        // 광고를 보고 얻는 추가 리롤. 기본 리롤과 별도로 판당 1회.
+        private bool _adRerollAvailable;
         private Dice _rerollCandidate;
 
         private readonly PlayerId _human = PlayerId.One;
@@ -38,6 +40,13 @@ namespace DiceBattle.UI
         /// <summary>결과 화면에서 "메뉴로" 선택 시 발생.</summary>
         public event Action MenuRequested;
 
+        /// <summary>
+        /// 기본 리롤을 소진한 뒤 리롤 버튼을 눌렀을 때 발생.
+        /// 확인 창과 광고 재생은 <see cref="GameManager"/>가 처리하고,
+        /// 광고를 끝까지 본 경우에만 <see cref="GrantAdReroll"/>를 호출한다.
+        /// </summary>
+        public event Action AdRerollRequested;
+
         /// <summary>한 판 종료 시 결과를 전달(점수/등급 갱신용).</summary>
         public event Action<MatchOutcome> MatchFinished;
 
@@ -46,8 +55,11 @@ namespace DiceBattle.UI
             _board = board;
             _difficulty = difficulty;
             _board.LineClicked += OnLineClicked;
-            _board.RestartClicked += OnRestart;
-            _board.MenuClicked += () => MenuRequested?.Invoke();
+            // 결과 화면을 벗어나는 순간이 전면 광고를 띄우기에 자연스러운 지점이다.
+            // 이 두 버튼은 결과 오버레이 안에만 있으므로 판당 정확히 한 번 지나간다.
+            // 판이 진행되는 도중에는 절대 띄우지 않는다 — 정책 위반이자 최악의 경험이다.
+            _board.RestartClicked += () => AdManager.ShowInterstitial(OnRestart);
+            _board.MenuClicked += () => AdManager.ShowInterstitial(() => MenuRequested?.Invoke());
             _board.RerollClicked += OnRerollClicked;
             _board.TrayDiceClicked += OnTrayDiceClicked;
         }
@@ -58,6 +70,7 @@ namespace DiceBattle.UI
             StopAllCoroutines();
             _mode = InputMode.None;
             _rerollAvailable = true; // 판마다 1회 충전
+            _adRerollAvailable = true; // 광고로 얻는 추가 리롤도 판당 1회
             _rerollCandidate = null;
             _board.ClearFx();
             _board.HideResult();
@@ -145,17 +158,47 @@ namespace DiceBattle.UI
             }
 
             // 리롤은 "내가 주사위를 배치해야 하는 타이밍"에만 누를 수 있다.
-            _board.SetRerollInteractable(_rerollAvailable && _mode != InputMode.None);
+            // 기본 리롤을 소진해도 광고 리롤이 남아 있으면 계속 눌린다.
+            _board.SetRerollInteractable(
+                (_rerollAvailable || CanOfferAdReroll) && _mode != InputMode.None);
         }
 
         // ---- 리롤 ----
 
+        /// <summary>광고 리롤을 제안할 수 있는 상태인가. 광고가 안 실려 있으면 제안하지 않는다.</summary>
+        private bool CanOfferAdReroll => _adRerollAvailable && AdManager.IsRewardedReady;
+
         private void OnRerollClicked()
         {
-            if (!_rerollAvailable) return;
             if (_mode != InputMode.Primary && _mode != InputMode.Extra) return;
 
-            _rerollAvailable = false; // 이 판에서는 영구 소진
+            if (_rerollAvailable)
+            {
+                _rerollAvailable = false; // 이 판에서는 영구 소진
+                BeginReroll();
+                return;
+            }
+
+            // 기본 리롤을 다 썼다 → 광고로 한 번 더 제안.
+            if (!CanOfferAdReroll) return;
+            AdRerollRequested?.Invoke();
+        }
+
+        /// <summary>
+        /// 광고를 끝까지 본 뒤 호출된다. 추가 리롤 1회를 소진하고 굴림을 시작한다.
+        /// 광고를 보는 동안 판이 끝났거나 단계가 바뀌었을 수 있으므로 조건을 다시 확인한다.
+        /// </summary>
+        public void GrantAdReroll()
+        {
+            if (!_adRerollAvailable) return;
+            if (_mode != InputMode.Primary && _mode != InputMode.Extra) return;
+
+            _adRerollAvailable = false;
+            BeginReroll();
+        }
+
+        private void BeginReroll()
+        {
             _mode = InputMode.None;
             _board.SetRerollInteractable(false);
             _board.ClearHighlights(); // 선택 중에는 라인 배치 불가

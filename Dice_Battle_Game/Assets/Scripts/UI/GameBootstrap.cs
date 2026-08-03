@@ -35,6 +35,10 @@ namespace DiceBattle.UI
             // UI보다 먼저 만들어야 버튼 생성 시점부터 클릭음이 붙는다.
             AudioManager.Create(transform, sounds);
 
+            // 광고는 미리 실어두어야 정작 필요할 때 떠 있다. AudioManager 뒤에 만든다
+            // (광고 표시 전후로 BGM을 멈추고 재개한다).
+            AdManager.Create(transform);
+
             Canvas canvas = CreateCanvas();
             EnsureEventSystem();
             var canvasRect = canvas.GetComponent<RectTransform>();

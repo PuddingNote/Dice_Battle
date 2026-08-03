@@ -78,6 +78,39 @@ namespace DiceBattle.UI
             }
         }
 
+        // ---- 광고 중 BGM 처리 ----
+
+        /// <summary>광고가 띄워져 있어 BGM을 멈춰둔 상태인가.</summary>
+        private bool _bgmPausedByAd;
+
+        /// <summary>
+        /// 광고 표시 직전 BGM을 멈춘다. 광고가 오디오 포커스를 가져가므로
+        /// 그냥 두면 광고 소리와 BGM이 겹친다.
+        /// Stop()이 아니라 Pause()라 재개할 때 처음부터 다시 시작하지 않는다.
+        /// </summary>
+        public static void PauseBgmForAd()
+        {
+            if (_instance == null) return;
+
+            var source = _instance._bgmSource;
+            if (!source.isPlaying) return;
+
+            source.Pause();
+            _instance._bgmPausedByAd = true;
+        }
+
+        /// <summary>광고가 닫힌 뒤 BGM을 이어서 재생한다.</summary>
+        public static void ResumeBgmAfterAd()
+        {
+            if (_instance == null || !_instance._bgmPausedByAd) return;
+
+            _instance._bgmPausedByAd = false;
+            // 광고 도중 설정이 꺼졌을 수 있으므로 현재 설정을 다시 본다.
+            if (!SoundSettings.BgmOn) return;
+
+            _instance._bgmSource.UnPause();
+        }
+
         // ---- 효과음 ----
 
         // UnityEngine.Object는 파괴 후에도 C# 참조가 남으므로 ?. 대신 != null 로 검사한다.

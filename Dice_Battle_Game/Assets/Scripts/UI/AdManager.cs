@@ -18,11 +18,13 @@ namespace DiceBattle.UI
     {
         // ---- 광고 단위 ID ----
         //
-        // 개발 내내 구글이 공개한 테스트 ID를 쓴다.
-        // 실제 광고 단위 ID로 개발 중 테스트하면 무효 트래픽으로 계정이 정지될 수 있다.
-        // 출시 직전 아래 두 상수만 실제 ID로 바꾼다. (docs/AdMobSetup.md 6장)
-        private const string InterstitialUnitId = "ca-app-pub-3940256099942544/1033173712";
-        private const string RewardedUnitId = "ca-app-pub-3940256099942544/5224354917";
+        // 실제 광고 단위 ID다. 에디터에서는 SDK가 자리표시 광고로 대체하므로
+        // 실제 광고 요청이 나가지 않지만, <b>실기기에서 확인할 때는 반드시
+        // AdMob 콘솔 → 설정 → 테스트 기기에 그 기기를 먼저 등록할 것.</b>
+        // 등록 없이 내 광고를 반복해 누르면 무효 트래픽으로 계정이 정지될 수 있다.
+        // 테스트 ID로 되돌려야 할 때는 docs/AdMobSetup.md 6장 참고.
+        private const string InterstitialUnitId = "ca-app-pub-6387288948977074/9451912784";
+        private const string RewardedUnitId = "ca-app-pub-6387288948977074/8597016170";
 
         // ---- 전면 광고 노출 규칙 ----
 

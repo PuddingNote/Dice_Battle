@@ -14,7 +14,7 @@ namespace DiceBattle.UI
         [Tooltip("선택: UI 스킨 에셋. 비우면 기본 단색 UI로 동작한다.")]
         [SerializeField] private UiSkin skin;
 
-        [Tooltip("선택: 난이도(등급별 AI 수치) 에셋. 비우면 코드 기본값 사용.")]
+        [Tooltip("선택: 난이도 밸런스(레벨별 AI 수치 + 점수 곡선) 에셋. 비우면 코드 기본값 사용.")]
         [SerializeField] private DifficultyConfig difficulty;
 
         [Tooltip("선택: 사운드 모음 에셋. 비우면 소리 없이 동작한다.")]

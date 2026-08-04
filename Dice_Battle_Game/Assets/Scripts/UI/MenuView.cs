@@ -5,7 +5,7 @@ using TMPro;
 namespace DiceBattle.UI
 {
     /// <summary>
-    /// 메인 메뉴: 제목 + 현재 점수/등급 + "게임 시작"(등급 자동 난이도) + "게임 설명서".
+    /// 메인 메뉴: 제목 + 현재 점수/해금 난이도 + "게임 시작"(난이도 선택 화면으로) + "게임 설명서".
     /// 제목과 버튼 사이에 빈 공간을 둬서 버튼들이 화면 아래쪽에 오도록 배치한다.
     /// 글자 크기/버튼 크기는 UiTheme의 Menu* 상수로 조절한다.
     /// </summary>
@@ -14,7 +14,7 @@ namespace DiceBattle.UI
         private GameObject _root;
         private TMP_Text _scoreText;
 
-        /// <summary>등급 자동 난이도로 게임 시작.</summary>
+        /// <summary>난이도 선택 화면으로 이동.</summary>
         public event Action StartRequested;
 
         /// <summary>게임 설명서 열기.</summary>
@@ -77,10 +77,11 @@ namespace DiceBattle.UI
             button.onClick.AddListener(() => onClick());
         }
 
-        public void SetScore(int score, int level)
+        /// <param name="unlockedLevel">해금한 가장 높은 난이도.</param>
+        public void SetScore(int score, int unlockedLevel)
         {
             if (_scoreText != null)
-                _scoreText.text = $"점수 {score}   ·   등급 Lv{level}";
+                _scoreText.text = $"점수 {score}   ·   Lv.{unlockedLevel}";
         }
 
         public void SetVisible(bool visible)

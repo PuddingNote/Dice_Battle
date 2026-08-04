@@ -259,5 +259,6 @@ Android Studio의 SDK Manager로 해당 플랫폼을 설치한다.
 
 - [ForceUpdate.md](ForceUpdate.md) — 강제 업데이트 운영 (매 업로드마다 확인)
 - [Monetization.md](Monetization.md) — 광고 설계 (비공개 테스트 기간 중 작업)
+- [Difficulty.md](Difficulty.md) — 난이도·해금 시스템과 밸런스 조정
 - [AndroidBuild.md](AndroidBuild.md) — 안드로이드 빌드 설정 상세
 - [Skinning.md](Skinning.md) — UI 스킨/치수 조정

@@ -77,7 +77,7 @@ namespace DiceBattle.UI
             baseWinPoints = 20f,
             growth = 1.35f,
             loseRatio = 0.45f,
-            winsPerTier = 10f,
+            winsPerTier = 17f, // Lv.10까지 약 539판 ≈ 18시간(판당 2분 기준)
             pointRoundTo = 10,
             unlockRoundTo = 100,
         };
@@ -126,7 +126,7 @@ namespace DiceBattle.UI
             catch (System.ArgumentException e)
             {
                 Debug.LogError($"[DifficultyConfig] 점수 곡선이 올바르지 않아 기본값을 사용한다: {e.Message}");
-                return DifficultyCurve.Placeholder.Build();
+                return DifficultyCurve.Default.Build();
             }
         }
 

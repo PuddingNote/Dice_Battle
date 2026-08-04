@@ -7,9 +7,6 @@ namespace DiceBattle.Core
     ///
     /// 10줄을 손으로 적으면 한 줄만 고쳐도 곡선이 어긋나고, 그게 어긋났다는 걸
     /// 눈으로 알아채기 어렵다. 공식에서 뽑으면 상수 하나만 바꿔 전체를 다시 그린다.
-    ///
-    /// <b>여기 기본값은 전부 임시 수치다.</b> 실제 밸런스는 마지막 단계에서
-    /// 확정한다. 지금 이 값들은 "구조가 말이 되는 표를 뽑아내는가"를 보기 위한 것이다.
     /// </summary>
     public readonly struct DifficultyCurve
     {
@@ -59,12 +56,16 @@ namespace DiceBattle.Core
         }
 
         /// <summary>
-        /// <b>임시 수치.</b> 인스펙터 에셋이 비어 있거나 깨졌을 때 쓰이는 폴백이자,
-        /// 밸런스를 확정할 때의 출발점이다. 확정 전까지 이 값을 근거로 삼지 말 것.
+        /// 인스펙터 에셋이 비어 있거나 깨졌을 때 쓰이는 기본 곡선.
+        /// <b>에셋의 값과 같게 유지할 것</b> — 달라지면 폴백이 걸렸을 때
+        /// 전혀 다른 게임이 되고, 그게 걸렸다는 사실도 알아채기 어렵다.
+        ///
+        /// <see cref="WinsPerTier"/> 17은 Lv.10까지 약 539판이고,
+        /// 판당 2분 기준으로 약 18시간이다(측정 근거는 docs/Difficulty.md 4장).
         /// </summary>
-        public static DifficultyCurve Placeholder
+        public static DifficultyCurve Default
             => new DifficultyCurve(baseWinPoints: 20d, growth: 1.35d, loseRatio: 0.45d,
-                winsPerTier: 10d, pointRoundTo: 10, unlockRoundTo: 100);
+                winsPerTier: 17d, pointRoundTo: 10, unlockRoundTo: 100);
 
         public DifficultyTable Build()
         {

@@ -24,7 +24,7 @@ namespace DiceBattle.UI
         /// 난이도 표. <see cref="Configure"/>로 인스펙터 에셋의 표가 주입되고,
         /// 주입 전이거나 에셋이 없으면 코드 기본 곡선으로 돌아간다.
         /// </summary>
-        private static DifficultyTable Table => _table ??= DifficultyCurve.Placeholder.Build();
+        private static DifficultyTable Table => _table ??= DifficultyCurve.Default.Build();
 
         /// <summary>
         /// 난이도 표를 지정한다. 부트스트랩에서 한 번 호출한다.

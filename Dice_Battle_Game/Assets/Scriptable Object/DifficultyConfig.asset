@@ -57,6 +57,6 @@ MonoBehaviour:
     baseWinPoints: 20
     growth: 1.35
     loseRatio: 0.45
-    winsPerTier: 10
+    winsPerTier: 17
     pointRoundTo: 10
     unlockRoundTo: 100

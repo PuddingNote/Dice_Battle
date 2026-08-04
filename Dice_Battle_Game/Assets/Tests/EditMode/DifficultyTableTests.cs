@@ -8,9 +8,10 @@ namespace DiceBattle.Tests
     /// <summary>
     /// 난이도 표와 해금 판정.
     ///
-    /// 수치는 아직 확정 전이므로, 여기서는 <b>임시 수치를 검증하지 않는다</b>.
-    /// 표를 직접 만들어 규칙만 확인하고, 공식 생성기는 "어떤 상수를 넣어도
-    /// 성립해야 하는 성질"만 본다. 그래야 밸런스를 바꿔도 테스트가 살아남는다.
+    /// <b>구체적인 밸런스 수치는 검증하지 않는다.</b> 표를 직접 만들어 규칙만 확인하고,
+    /// 공식 생성기는 "어떤 상수를 넣어도 성립해야 하는 성질"만 본다.
+    /// 수치를 박아 두면 밸런스를 조정할 때마다 테스트가 깨져, 정작 규칙이 무너졌을 때
+    /// 그 신호가 묻힌다.
     /// </summary>
     public class DifficultyTableTests
     {
@@ -227,7 +228,7 @@ namespace DiceBattle.Tests
         [Test]
         public void Curve_Builds_A_Valid_Ten_Tier_Table()
         {
-            var table = DifficultyCurve.Placeholder.Build();
+            var table = DifficultyCurve.Default.Build();
             Assert.AreEqual(DifficultyTable.LevelCount, table.Tiers.Count);
             Assert.AreEqual(0, table[1].UnlockScore);
         }
@@ -235,7 +236,7 @@ namespace DiceBattle.Tests
         [Test]
         public void Curve_Increases_Every_Column()
         {
-            var table = DifficultyCurve.Placeholder.Build();
+            var table = DifficultyCurve.Default.Build();
 
             for (int level = DifficultyTable.MinLevel + 1; level <= DifficultyTable.MaxLevel; level++)
             {
@@ -258,7 +259,7 @@ namespace DiceBattle.Tests
         {
             // 누진 증가: 뒤로 갈수록 다음 단계까지의 간격이 벌어져야 한다.
             // 등차로 늘면 승리 점수만 커져서 상위 난이도가 너무 쉽게 뚫린다.
-            var table = DifficultyCurve.Placeholder.Build();
+            var table = DifficultyCurve.Default.Build();
 
             for (int level = DifficultyTable.MinLevel + 2; level <= DifficultyTable.MaxLevel; level++)
             {
@@ -274,7 +275,7 @@ namespace DiceBattle.Tests
             // 손익분기 승률이 단계마다 크게 흔들리면 특정 난이도만 파밍 구간이 된다.
             // 정확히 같을 수는 없으므로 폭으로 확인한다. 낮은 단계는 숫자가 작아
             // 10단위 반올림의 상대 오차가 커지므로(예: 9 → 10) 여유를 둔다.
-            var table = DifficultyCurve.Placeholder.Build();
+            var table = DifficultyCurve.Default.Build();
 
             double min = double.MaxValue;
             double max = double.MinValue;

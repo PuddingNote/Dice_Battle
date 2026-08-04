@@ -67,6 +67,32 @@ namespace DiceBattle.Core
             => new DifficultyCurve(baseWinPoints: 20d, growth: 1.35d, loseRatio: 0.45d,
                 winsPerTier: 17d, pointRoundTo: 10, unlockRoundTo: 100);
 
+        /// <summary>
+        /// 인스펙터에서 읽은 float 값으로 곡선을 만든다.
+        ///
+        /// float을 그대로 double로 넓히면 <b>사람이 적은 값과 미세하게 다른 수</b>가 된다.
+        /// 0.45f가 실제로 담고 있는 값은 0.449999988079071이고, 이 오차가 반올림 경계에서
+        /// 결과를 갈라놓는다(300 × 0.45 = 135는 10 단위의 정확한 중간값이라,
+        /// 오차 방향에 따라 130이 되기도 140이 되기도 한다).
+        ///
+        /// 그러면 같은 수치를 적어 두고도 에셋에서 만든 표와 <see cref="Default"/>의 표가
+        /// 달라진다. 폴백이 걸린 순간 조용히 밸런스가 바뀌는 셈이라 반드시 막아야 한다.
+        /// </summary>
+        public static DifficultyCurve FromSingle(float baseWinPoints, float growth,
+            float loseRatio, float winsPerTier, int pointRoundTo, int unlockRoundTo)
+            => new DifficultyCurve(Widen(baseWinPoints), Widen(growth), Widen(loseRatio),
+                Widen(winsPerTier), pointRoundTo, unlockRoundTo);
+
+        /// <summary>float에 담긴 소수를 사람이 적은 값으로 복원한다.</summary>
+        private static double Widen(float value)
+        {
+            // decimal로 표현할 수 없는 크기는 밸런스 수치로 의미가 없다. 그냥 넓혀 넘긴다.
+            if (float.IsNaN(value) || float.IsInfinity(value) || value > 1e12f || value < -1e12f)
+                return value;
+
+            return (double)(decimal)value;
+        }
+
         public DifficultyTable Build()
         {
             var tiers = new DifficultyTier[DifficultyTable.LevelCount];

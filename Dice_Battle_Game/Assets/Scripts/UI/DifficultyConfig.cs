@@ -130,8 +130,13 @@ namespace DiceBattle.UI
             }
         }
 
+        /// <summary>
+        /// 인스펙터 값(float)을 곡선으로 옮긴다.
+        /// FromSingle을 거쳐야 인스펙터에 적은 값과 코드 기본 곡선이 같은 표를 만든다
+        /// (그냥 double로 넓히면 float 오차가 반올림 경계에서 결과를 갈라놓는다).
+        /// </summary>
         private DifficultyCurve ToCurve()
-            => new DifficultyCurve(scoreCurve.baseWinPoints, scoreCurve.growth,
+            => DifficultyCurve.FromSingle(scoreCurve.baseWinPoints, scoreCurve.growth,
                 scoreCurve.loseRatio, scoreCurve.winsPerTier,
                 scoreCurve.pointRoundTo, scoreCurve.unlockRoundTo);
 

@@ -291,6 +291,27 @@ namespace DiceBattle.Tests
         }
 
         [Test]
+        public void Inspector_Floats_Produce_The_Same_Table_As_Exact_Values()
+        {
+            // 인스펙터 값은 float이라 0.45가 실제로는 0.449999988079071로 담긴다.
+            // 이 오차가 반올림 경계에서 결과를 갈라놓으면(300 × 0.45 = 135는 10 단위의
+            // 정확한 중간값이다) 같은 수치를 적어 두고도 에셋의 표와 코드 기본 곡선의
+            // 표가 달라져, 폴백이 걸리는 순간 조용히 밸런스가 바뀐다.
+            var fromInspector = DifficultyCurve.FromSingle(20f, 1.35f, 0.45f, 17f, 10, 100);
+            var exact = new DifficultyCurve(20d, 1.35d, 0.45d, 17d, 10, 100);
+
+            DifficultyTable a = fromInspector.Build();
+            DifficultyTable b = exact.Build();
+
+            for (int level = DifficultyTable.MinLevel; level <= DifficultyTable.MaxLevel; level++)
+            {
+                Assert.AreEqual(b[level].UnlockScore, a[level].UnlockScore, $"Lv{level} 해금선");
+                Assert.AreEqual(b[level].WinPoints, a[level].WinPoints, $"Lv{level} 승점");
+                Assert.AreEqual(b[level].LosePoints, a[level].LosePoints, $"Lv{level} 패점");
+            }
+        }
+
+        [Test]
         public void Curve_Playtime_Scales_With_WinsPerTier()
         {
             // 이 상수 하나로 전체 플레이타임을 조절할 수 있어야 한다.

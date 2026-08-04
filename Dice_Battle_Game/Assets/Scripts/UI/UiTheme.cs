@@ -93,7 +93,7 @@ namespace DiceBattle.UI
 
         // ---- 메인 메뉴 (글자 크기/버튼 크기는 여기서 조절) ----
         public const int MenuTitleFontSize = 92;    // "다이스 배틀"
-        public const int MenuScoreFontSize = 52;    // "점수 80 · 등급 Lv1 (선공: 랜덤)"
+        public const int MenuScoreFontSize = 52;    // "점수 80 · Lv.1"
         public const int MenuStartFontSize = 52;    // "게임 시작"
         public const int MenuManualFontSize = 52;   // "게임 설명서"
         public const float MenuStartButtonWidth = 540f;
@@ -105,6 +105,26 @@ namespace DiceBattle.UI
         // Title 쪽을 키우면 제목이 위로 올라가고, Head 쪽을 키우면 제목이 아래로 내려온다.
         public const float MenuHeadSpacerWeight = 1f;
         public const float MenuTitleSpacerWeight = 1f;
+
+        // ---- 난이도 선택 화면 ----
+        // 카드 10장을 5열 2행 그리드로 놓는다. 세로 스크롤을 쓰면 잠긴 난이도가
+        // 화면 밖으로 나가 목표가 안 보이므로, 전부 한 화면에 들어가게 한다.
+        public const int DifficultyTitleFontSize = 68;
+        public const int DifficultySummaryFontSize = 40;
+        public const int DifficultyLevelFontSize = 56;
+        public const int DifficultyCardInfoFontSize = 32;
+        public const float DifficultyCardWidth = 320f;
+        public const float DifficultyCardHeight = 290f;
+        public const int DifficultyCardSpacing = 24;   // 카드 사이 가로 간격
+        public const int DifficultyRowSpacing = 20;    // 두 행 사이 간격
+        public const float DifficultyStartButtonWidth = 480f;
+        public const float DifficultyBackButtonWidth = 300f;
+        public const float DifficultyFooterButtonHeight = 120f;
+
+        // 카드 상태별 배경. 잠긴 카드는 눌러도 반응이 없으므로 한눈에 구분되어야 한다.
+        public static readonly Color DifficultyCardLocked = new Color(0.15f, 0.16f, 0.19f, 1f);
+        public static readonly Color DifficultyCardUnlocked = new Color(0.22f, 0.26f, 0.34f, 1f);
+        public static readonly Color DifficultyCardSelected = new Color(0.30f, 0.55f, 0.95f, 1f);
 
         // ---- 설정 창 ----
         public const float SettingsWindowWidth = 1180f;

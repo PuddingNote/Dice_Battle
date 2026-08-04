@@ -5,8 +5,8 @@ using DiceBattle.Core;
 namespace DiceBattle.UI
 {
     /// <summary>
-    /// 화면 흐름 관리: 메인 메뉴 ↔ 게임.
-    /// 등급(점수)에 따라 난이도가 자동 결정되고, 매 판 결과로 점수가 갱신된다.
+    /// 화면 흐름 관리: 메인 메뉴 ↔ 난이도 선택 ↔ 게임.
+    /// 난이도는 해금한 것 중에서 플레이어가 직접 고르고, 매 판 결과로 점수·해금이 갱신된다.
     /// 설정 버튼(우측 상단)은 두 화면 공통이라 여기서 만들어 항상 띄워 둔다.
     /// 모바일 뒤로가기 버튼(=Escape)도 여기서 처리한다.
     /// </summary>
@@ -14,7 +14,14 @@ namespace DiceBattle.UI
     {
         private const PlayerId Human = PlayerId.One;
 
+        /// <summary>
+        /// 지금 보고 있는 화면. 뒤로가기 동작이 여기서 갈린다.
+        /// (이름을 Screen으로 두면 UnityEngine.Screen을 가려 버린다.)
+        /// </summary>
+        private enum ScreenId { Menu, DifficultySelect, Game }
+
         private MenuView _menu;
+        private DifficultySelectView _select;
         private BoardView _board;
         private GameController _controller;
         private ConfirmDialogView _dialog;
@@ -22,10 +29,23 @@ namespace DiceBattle.UI
         private ManualView _manual;
         private CreditsView _credits;
 
-        private bool _inMenu = true;
+        private ScreenId _screen = ScreenId.Menu;
+
+        /// <summary>
+        /// 직전 판의 정산 결과. "계속하기"가 난이도 선택으로 갈지 바로 재시작할지를 정한다.
+        /// 기본값(전부 0)은 해금 없음으로 읽히므로 첫 판 전에도 안전하다.
+        /// </summary>
+        private ProgressUpdate _lastResult;
+
+        /// <summary>해금 문구 색. 특수 주사위와 같은 금색이라 "얻었다"는 신호가 겹쳐 읽힌다.</summary>
+        private const string UnlockColorHex = "#FFDB59";
 
         public void Init(RectTransform canvasRoot, DifficultyConfig difficulty)
         {
+            // 점수·해금 판정에 쓸 난이도 표를 먼저 정한다.
+            // 화면을 만들기 전에 해둬야 메뉴가 해금 상태를 제대로 표시한다.
+            PlayerProgress.Configure(difficulty != null ? difficulty.CreateTable() : null);
+
             var boardGo = new GameObject("BoardView");
             boardGo.transform.SetParent(transform, false);
             _board = boardGo.AddComponent<BoardView>();
@@ -36,6 +56,7 @@ namespace DiceBattle.UI
             _controller = controllerGo.AddComponent<GameController>();
             _controller.Init(_board, difficulty);
             _controller.MenuRequested += ShowMenu;
+            _controller.ContinueRequested += OnContinue;
             _controller.MatchFinished += OnMatchFinished;
             _controller.AdRerollRequested += OnAdRerollRequested;
 
@@ -44,8 +65,15 @@ namespace DiceBattle.UI
             menuGo.transform.SetParent(transform, false);
             _menu = menuGo.AddComponent<MenuView>();
             _menu.Build(canvasRoot);
-            _menu.StartRequested += () => StartGame(PlayerProgress.Level); // 등급 자동 난이도
+            _menu.StartRequested += ShowDifficultySelect;
             _menu.ManualRequested += () => _manual.Open();
+
+            var selectGo = new GameObject("DifficultySelectView");
+            selectGo.transform.SetParent(transform, false);
+            _select = selectGo.AddComponent<DifficultySelectView>();
+            _select.Build(canvasRoot);
+            _select.StartRequested += StartGame;
+            _select.BackRequested += ShowMenu;
 
             // 설정 버튼은 메인 화면·게임 화면 위에 항상 떠 있어야 하므로 둘 다 만든 뒤에 생성한다.
             CreateSettingsButton(canvasRoot);
@@ -80,16 +108,56 @@ namespace DiceBattle.UI
         private void ShowMenu()
         {
             _controller.AbortMatch(); // 진행 중이던 판/연출 중단
-            _inMenu = true;
+            _screen = ScreenId.Menu;
             _board.SetVisible(false);
-            _menu.SetScore(PlayerProgress.Score, PlayerProgress.Level);
+            _select.SetVisible(false);
+            _menu.SetScore(PlayerProgress.Score, PlayerProgress.MaxUnlockedLevel);
             _menu.SetVisible(true);
+        }
+
+        /// <summary>메인 메뉴에서 들어온 경우. 고를 수 있는 가장 높은 난이도가 잡혀 있다.</summary>
+        private void ShowDifficultySelect()
+            => OpenDifficultySelect(PlayerProgress.MaxUnlockedLevel, newFrom: 0, newTo: 0);
+
+        /// <summary>
+        /// 해금 직후. 새로 열린 난이도를 강조하고 <b>기본 선택까지 그쪽으로 옮긴다</b> —
+        /// 방금 얻은 것을 바로 해보는 게 자연스럽고, 어느 카드가 새 것인지도 분명해진다.
+        /// </summary>
+        private void ShowDifficultySelectAfterUnlock(ProgressUpdate update)
+            => OpenDifficultySelect(update.UnlockedAfter,
+                newFrom: update.UnlockedBefore + 1, newTo: update.UnlockedAfter);
+
+        /// <summary>해금 상태는 매 판 바뀌므로 열 때마다 다시 그린다.</summary>
+        private void OpenDifficultySelect(int selectedLevel, int newFrom, int newTo)
+        {
+            _controller.AbortMatch();
+            _screen = ScreenId.DifficultySelect;
+            _board.SetVisible(false);
+            _menu.SetVisible(false);
+            _select.Open(PlayerProgress.Difficulties, PlayerProgress.Score,
+                PlayerProgress.HighestScore, selectedLevel, newFrom, newTo);
+        }
+
+        /// <summary>
+        /// 결과 화면의 "계속하기".
+        /// 새 난이도가 열렸을 때만 고를 기회를 준다. 아무것도 안 열렸는데 매번
+        /// 선택 화면을 거치게 하면 연달아 할 때 탭만 늘어난다.
+        /// </summary>
+        private void OnContinue()
+        {
+            if (_lastResult.HasNewUnlock)
+            {
+                ShowDifficultySelectAfterUnlock(_lastResult);
+                return;
+            }
+            StartGame(_controller.Level);
         }
 
         private void StartGame(int level)
         {
-            _inMenu = false;
+            _screen = ScreenId.Game;
             _menu.SetVisible(false);
+            _select.SetVisible(false);
             _board.SetVisible(true);
             _controller.StartMatch(level);
         }
@@ -140,9 +208,17 @@ namespace DiceBattle.UI
                 return;
             }
 
-            if (_inMenu)
+            if (_screen == ScreenId.Menu)
             {
                 _dialog.Open("게임을 종료할까요?", "뒤로가기", "게임 종료", AppExit.Quit);
+                return;
+            }
+
+            // 난이도 선택은 아직 아무것도 시작하지 않은 화면이라 확인 없이 되돌린다.
+            // 결과 화면을 거쳐 왔더라도 그 판은 이미 정산이 끝났으므로 메인으로 보낸다.
+            if (_screen == ScreenId.DifficultySelect)
+            {
+                ShowMenu();
                 return;
             }
 
@@ -179,12 +255,33 @@ namespace DiceBattle.UI
         private void OnMatchFinished(MatchOutcome outcome)
         {
             PlayerMatchResult result = RankSystem.ResultFor(outcome, Human);
-            int delta = PlayerProgress.ApplyResult(result);
 
-            string sign = delta > 0 ? "+" : "";
+            // 정산은 반드시 "그 판을 시작한 난이도"로 한다. 지금 해금된 난이도로 하면
+            // 낮은 난이도를 골라 놓고 높은 난이도의 점수를 받게 된다.
+            ProgressUpdate update = PlayerProgress.ApplyResult(result, _controller.Level);
+            _lastResult = update; // "계속하기"가 어디로 갈지 이 값으로 갈린다
+
+            string sign = update.Delta > 0 ? "+" : "";
             string scoreLine =
-                $"점수 {sign}{delta}  →  {PlayerProgress.Score}  (등급 Lv{PlayerProgress.Level})";
+                $"Lv.{_controller.Level}   점수 {sign}{update.Delta}  →  {update.Score}";
+
+            // 결과 문구는 이미 9줄 가까이 되어 아래 버튼과 여유가 없다.
+            // 색으로 충분히 구분되므로 빈 줄을 넣지 않는다.
+            if (update.HasNewUnlock)
+                scoreLine += $"\n<color={UnlockColorHex}>{UnlockedRange(update)} 해금!</color>";
+
             _board.ShowResult(outcome, scoreLine);
+        }
+
+        /// <summary>
+        /// 한 판에 두 단계가 동시에 열릴 수도 있으므로 구간으로 적는다.
+        /// 지금 수치로는 일어나지 않지만, 밸런스를 조정하다 승점이 커지면 생길 수 있다.
+        /// </summary>
+        private static string UnlockedRange(ProgressUpdate update)
+        {
+            int from = update.UnlockedBefore + 1;
+            int to = update.UnlockedAfter;
+            return from == to ? $"Lv.{to}" : $"Lv.{from}~{to}";
         }
     }
 }

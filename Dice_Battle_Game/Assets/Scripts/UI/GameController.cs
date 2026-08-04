@@ -20,6 +20,10 @@ namespace DiceBattle.UI
         private IAiStrategy _ai;
         private InputMode _mode = InputMode.None;
 
+        // 이 판의 난이도. 시작할 때 고정되고 판이 끝날 때까지 바뀌지 않는다 —
+        // 점수 정산도 이 값으로 해야 도중에 기준이 흔들리지 않는다.
+        private int _level;
+
         // 리롤: 판당 1회. 사용하면 그 판이 끝날 때까지 다시 못 쓴다.
         private bool _rerollAvailable;
         // 광고를 보고 얻는 추가 리롤. 기본 리롤과 별도로 판당 1회.
@@ -41,13 +45,19 @@ namespace DiceBattle.UI
         public event Action MenuRequested;
 
         /// <summary>
+        /// 결과 화면에서 "계속하기" 선택 시 발생(전면 광고가 끝난 뒤).
+        /// 새 난이도가 열렸는지는 점수를 정산하는 쪽만 알 수 있으므로, 다음 화면은 거기서 정한다.
+        /// </summary>
+        public event Action ContinueRequested;
+
+        /// <summary>
         /// 기본 리롤을 소진한 뒤 리롤 버튼을 눌렀을 때 발생.
         /// 확인 창과 광고 재생은 <see cref="GameManager"/>가 처리하고,
         /// 광고를 끝까지 본 경우에만 <see cref="GrantAdReroll"/>를 호출한다.
         /// </summary>
         public event Action AdRerollRequested;
 
-        /// <summary>한 판 종료 시 결과를 전달(점수/등급 갱신용).</summary>
+        /// <summary>한 판 종료 시 결과를 전달(점수·해금 갱신용).</summary>
         public event Action<MatchOutcome> MatchFinished;
 
         public void Init(BoardView board, DifficultyConfig difficulty)
@@ -58,16 +68,20 @@ namespace DiceBattle.UI
             // 결과 화면을 벗어나는 순간이 전면 광고를 띄우기에 자연스러운 지점이다.
             // 이 두 버튼은 결과 오버레이 안에만 있으므로 판당 정확히 한 번 지나간다.
             // 판이 진행되는 도중에는 절대 띄우지 않는다 — 정책 위반이자 최악의 경험이다.
-            _board.RestartClicked += () => AdManager.ShowInterstitial(OnRestart);
+            _board.ContinueClicked += () => AdManager.ShowInterstitial(() => ContinueRequested?.Invoke());
             _board.MenuClicked += () => AdManager.ShowInterstitial(() => MenuRequested?.Invoke());
             _board.RerollClicked += OnRerollClicked;
             _board.TrayDiceClicked += OnTrayDiceClicked;
         }
 
+        /// <summary>이번 판의 난이도(시작 시점에 고정).</summary>
+        public int Level => _level;
+
         /// <summary>지정 난이도로 새 대전 시작(선공 랜덤).</summary>
         public void StartMatch(int level)
         {
             StopAllCoroutines();
+            _level = level;
             _mode = InputMode.None;
             _rerollAvailable = true; // 판마다 1회 충전
             _adRerollAvailable = true; // 광고로 얻는 추가 리롤도 판당 1회
@@ -94,12 +108,6 @@ namespace DiceBattle.UI
             _board.RefreshTray(_game.State);
             BeginTurn();
         }
-
-        /// <summary>
-        /// "다시 하기"는 직전 판의 난이도가 아니라 <b>지금 등급</b>으로 다시 시작한다.
-        /// 이전 판 결과로 등급이 오르내렸을 수 있기 때문이다(메뉴의 "게임 시작"과 동일 기준).
-        /// </summary>
-        private void OnRestart() => StartMatch(PlayerProgress.Level);
 
         /// <summary>아직 승부가 나지 않은 판이 진행 중인지.</summary>
         public bool IsMatchActive => _game != null && !_game.State.IsGameOver;

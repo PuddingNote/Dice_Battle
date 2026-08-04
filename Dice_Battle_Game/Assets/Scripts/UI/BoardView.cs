@@ -26,13 +26,19 @@ namespace DiceBattle.UI
         private RectTransform _fxLayer;
         private GameObject _resultOverlay;
         private TMP_Text _resultText;
-        private Button _restartButton;
+        private Button _continueButton;
         private Button _menuButton;
 
         private IconButton _reroll;
 
         public event Action<PlayerId, int> LineClicked;
-        public event Action RestartClicked;
+
+        /// <summary>
+        /// 결과 화면의 "계속하기". 다음에 무엇을 할지(같은 난이도로 재시작 / 난이도 선택)는
+        /// 해금 여부를 아는 쪽에서 정하므로, 보드는 눌렸다는 사실만 알린다.
+        /// </summary>
+        public event Action ContinueClicked;
+
         public event Action MenuClicked;
 
         /// <summary>리롤 버튼을 눌렀을 때.</summary>
@@ -166,12 +172,12 @@ namespace DiceBattle.UI
             UiFactory.AddHorizontalLayout(buttonRow.gameObject, 40, new RectOffset(0, 0, 0, 0));
             UiFactory.SetSize(buttonRow.gameObject, 900f, 150f);
 
-            _restartButton = UiFactory.CreateButton("RestartButton", buttonRow.transform, UiTheme.Button);
-            UiFactory.SetSize(_restartButton.gameObject, 400f, 130f);
-            var restartText = UiFactory.CreateText("Label", _restartButton.transform, "다시 하기",
+            _continueButton = UiFactory.CreateButton("ContinueButton", buttonRow.transform, UiTheme.Button);
+            UiFactory.SetSize(_continueButton.gameObject, 400f, 130f);
+            var continueText = UiFactory.CreateText("Label", _continueButton.transform, "계속하기",
                 UiTheme.StatusFontSize, Color.white);
-            UiFactory.Stretch(restartText.rectTransform);
-            _restartButton.onClick.AddListener(() => RestartClicked?.Invoke());
+            UiFactory.Stretch(continueText.rectTransform);
+            _continueButton.onClick.AddListener(() => ContinueClicked?.Invoke());
 
             _menuButton = UiFactory.CreateButton("MenuButton", buttonRow.transform, UiTheme.CenterPanel);
             UiFactory.SetSize(_menuButton.gameObject, 400f, 130f);

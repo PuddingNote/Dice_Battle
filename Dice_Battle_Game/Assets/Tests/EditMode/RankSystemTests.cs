@@ -3,37 +3,53 @@ using DiceBattle.Core;
 
 namespace DiceBattle.Tests
 {
+    /// <summary>
+    /// 점수 산술. 난이도 해금 판정은 DifficultyTableTests가 맡는다.
+    /// 수치는 확정 전이므로 실제 밸런스 표를 쓰지 않고 티어를 직접 만들어 검증한다.
+    /// </summary>
     public class RankSystemTests
     {
+        private static DifficultyTier Tier(int win, int lose)
+            => new DifficultyTier(level: 1, unlockScore: 0, winPoints: win, losePoints: lose);
+
         [Test]
-        public void LevelForScore_Boundaries()
+        public void Delta_Comes_From_The_Tier()
         {
-            Assert.AreEqual(1, RankSystem.LevelForScore(0));
-            Assert.AreEqual(1, RankSystem.LevelForScore(99));
-            Assert.AreEqual(2, RankSystem.LevelForScore(100));
-            Assert.AreEqual(2, RankSystem.LevelForScore(299));
-            Assert.AreEqual(3, RankSystem.LevelForScore(300));
-            Assert.AreEqual(3, RankSystem.LevelForScore(599));
-            Assert.AreEqual(4, RankSystem.LevelForScore(600));
-            Assert.AreEqual(4, RankSystem.LevelForScore(999));
-            Assert.AreEqual(5, RankSystem.LevelForScore(1000));
-            Assert.AreEqual(5, RankSystem.LevelForScore(5000));
+            var easy = Tier(win: 20, lose: 10);
+            var hard = Tier(win: 300, lose: 140);
+
+            Assert.AreEqual(20, RankSystem.DeltaFor(PlayerMatchResult.Win, easy));
+            Assert.AreEqual(-10, RankSystem.DeltaFor(PlayerMatchResult.Lose, easy));
+
+            // 같은 결과라도 난이도가 높으면 폭이 커진다.
+            Assert.AreEqual(300, RankSystem.DeltaFor(PlayerMatchResult.Win, hard));
+            Assert.AreEqual(-140, RankSystem.DeltaFor(PlayerMatchResult.Lose, hard));
         }
 
         [Test]
-        public void ApplyResult_Win_Lose_Draw()
+        public void Draw_Never_Moves_The_Score()
         {
-            Assert.AreEqual(20, RankSystem.ApplyResult(0, PlayerMatchResult.Win));
-            Assert.AreEqual(190, RankSystem.ApplyResult(200, PlayerMatchResult.Lose));
-            Assert.AreEqual(500, RankSystem.ApplyResult(500, PlayerMatchResult.Draw));
+            // 무승부는 난이도와 무관하게 0이다.
+            Assert.AreEqual(0, RankSystem.DeltaFor(PlayerMatchResult.Draw, Tier(20, 10)));
+            Assert.AreEqual(0, RankSystem.DeltaFor(PlayerMatchResult.Draw, Tier(300, 140)));
+            Assert.AreEqual(500, RankSystem.ApplyResult(500, PlayerMatchResult.Draw, Tier(300, 140)));
         }
 
         [Test]
-        public void ApplyResult_Floor_At_Zero()
+        public void ApplyResult_Adds_And_Subtracts()
         {
-            Assert.AreEqual(0, RankSystem.ApplyResult(0, PlayerMatchResult.Lose));
-            Assert.AreEqual(0, RankSystem.ApplyResult(5, PlayerMatchResult.Lose));
-            Assert.AreEqual(40, RankSystem.ApplyResult(50, PlayerMatchResult.Lose));
+            var tier = Tier(win: 70, lose: 30);
+            Assert.AreEqual(70, RankSystem.ApplyResult(0, PlayerMatchResult.Win, tier));
+            Assert.AreEqual(170, RankSystem.ApplyResult(200, PlayerMatchResult.Lose, tier));
+        }
+
+        [Test]
+        public void ApplyResult_Floors_At_Zero()
+        {
+            var tier = Tier(win: 70, lose: 30);
+            Assert.AreEqual(0, RankSystem.ApplyResult(0, PlayerMatchResult.Lose, tier));
+            Assert.AreEqual(0, RankSystem.ApplyResult(10, PlayerMatchResult.Lose, tier),
+                "차감량보다 점수가 적어도 음수로 내려가지 않는다.");
         }
 
         [Test]

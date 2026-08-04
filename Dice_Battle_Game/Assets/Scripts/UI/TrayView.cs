@@ -25,7 +25,10 @@ namespace DiceBattle.UI
 
         private readonly System.Random _rng = new System.Random();
         private Dice _last;
+        // 리롤 후보. 이것을 고르면 _last가 된다.
+        private Dice _candidate;
         private Coroutine _co;
+        private bool _rolling;
 
         /// <summary>리롤 선택 중 주사위를 클릭했을 때(0=기존, 1=리롤 후보).</summary>
         public event Action<int> DiceClicked;
@@ -52,11 +55,10 @@ namespace DiceBattle.UI
                 rt.sizeDelta = new Vector2(UiTheme.CellSize, UiTheme.CellSize);
                 rt.anchoredPosition = Vector2.zero;
 
-                int index = i;
                 var button = rt.gameObject.AddComponent<Button>();
                 button.transition = Selectable.Transition.None;
                 button.onClick.AddListener(AudioManager.PlayButton); // 리롤 주사위 선택도 클릭음
-                button.onClick.AddListener(() => DiceClicked?.Invoke(index));
+                button.onClick.AddListener(() => DiceClicked?.Invoke(IndexOf(cell)));
                 _buttons[i] = button;
 
                 _dice[i] = cell;
@@ -101,6 +103,22 @@ namespace DiceBattle.UI
 
         private RectTransform RectOf(int i) => _dice[i].Rect;
 
+        /// <summary>
+        /// 클릭한 주사위의 슬롯 번호를 <b>클릭 시점에</b> 다시 찾는다.
+        /// <see cref="ResolvePickRoutine"/>이 선택 후 두 슬롯을 맞바꾸므로,
+        /// 버튼을 만들 때의 번호를 캡처해 두면 그 다음 리롤부터 좌우가 뒤집힌 값이 전달된다
+        /// (고른 주사위가 버려지는 버그).
+        /// </summary>
+        private int IndexOf(CellView cell)
+        {
+            for (int i = 0; i < PairCount; i++)
+                if (ReferenceEquals(_dice[i], cell)) return i;
+            return 0;
+        }
+
+        /// <summary>새 주사위가 굴러 제자리에 서는 중인가. 이 동안에는 입력을 받으면 안 된다.</summary>
+        public bool IsRolling => _rolling;
+
         /// <summary>현재 트레이 주사위의 월드 위치(배치 연출 시작점).</summary>
         public Vector3 DieWorldPosition => RectOf(0).position;
 
@@ -109,6 +127,7 @@ namespace DiceBattle.UI
         {
             StopAnim();
             _last = null;
+            _candidate = null;
             SetPickable(false); // 트레이를 비우면 강조도 같이 꺼진다
             for (int i = 0; i < PairCount; i++) ResetDie(i);
         }
@@ -116,6 +135,7 @@ namespace DiceBattle.UI
         private void StopAnim()
         {
             if (_co != null) { _runner.StopCoroutine(_co); _co = null; }
+            _rolling = false;
             AudioManager.StopDiceShake(); // 굴림 도중 끊기면 소리도 같이 끊는다
         }
 
@@ -142,6 +162,7 @@ namespace DiceBattle.UI
                 _last = die;
                 StopAnim();
                 ResetDie(1);
+                _rolling = true; // StartCoroutine 전에 세워야 같은 프레임의 입력도 막힌다
                 _co = _runner.StartCoroutine(RollAndSlide(die.Value, die.IsSpecial, towardLeft));
             }
         }
@@ -150,8 +171,10 @@ namespace DiceBattle.UI
         /// 리롤 후보를 트레이 가운데에서 굴려 기존 주사위 우측에 붙인다.
         /// 완료 후 두 주사위가 클릭 가능해진다(리롤은 플레이어 전용이라 항상 좌측 진영).
         /// </summary>
-        public IEnumerator RollCandidateRoutine(int value, bool special)
+        public IEnumerator RollCandidateRoutine(Dice candidate)
         {
+            _candidate = candidate;
+
             // 첫 주사위의 굴림 연출이 아직 돌고 있을 수 있으므로 먼저 최종 상태로 확정한다.
             FinalizeCurrent();
 
@@ -161,7 +184,7 @@ namespace DiceBattle.UI
 
             yield return RollFlicks(_dice[1], DiceSide.Player);
 
-            _dice[1].SetDie(value, special, DiceSide.Player);
+            _dice[1].SetDie(candidate.Value, candidate.IsSpecial, DiceSide.Player);
             rt.localScale = Vector3.one;
             yield return new WaitForSeconds(0.2f);
 
@@ -218,7 +241,12 @@ namespace DiceBattle.UI
             {
                 (_dice[0], _dice[1]) = (_dice[1], _dice[0]);
                 (_buttons[0], _buttons[1]) = (_buttons[1], _buttons[0]);
+
+                // 후보가 곧 현재 주사위다. 여기서 갱신하지 않으면 다음 리롤의
+                // FinalizeCurrent가 슬롯 0을 리롤 전 값으로 되돌려 그린다.
+                if (_candidate != null) _last = _candidate;
             }
+            _candidate = null;
         }
 
         /// <summary>진행 중인 굴림 연출을 끊고 현재 주사위를 최종 상태(좌측 슬롯)로 스냅한다.</summary>
@@ -251,6 +279,7 @@ namespace DiceBattle.UI
             // 3) 해당 턴 방향으로 부드럽게 이동
             yield return Move(rt, Vector2.zero, new Vector2(towardLeft ? -_slideX : _slideX, 0f), 0.4f);
             _co = null;
+            _rolling = false;
         }
 
         private IEnumerator RollFlicks(CellView cell, DiceSide side)

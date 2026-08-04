@@ -129,18 +129,39 @@ namespace DiceBattle.UI
             var s = _game.State;
             if (s.IsGameOver)
             {
-                _mode = InputMode.None;
-                _board.ClearHighlights();
-                _board.SetRerollInteractable(false);
+                LockInput();
                 // 라인별 승자 도장을 볼 수 있도록 잠시 뒤 결과 화면 표시.
                 StartCoroutine(EndGameAfterDelay());
                 return;
             }
 
             if (s.CurrentPlayer == _human)
-                SetHumanInput();
+                StartCoroutine(HumanTurn());
             else
                 StartCoroutine(AiTurn());
+        }
+
+        /// <summary>
+        /// 연출이 도는 동안 라인 클릭과 리롤을 모두 막는다.
+        /// 입력 경로가 두 개(라인/리롤)라 한쪽만 잠그면 다른 쪽으로 새어 들어온다.
+        /// </summary>
+        private void LockInput()
+        {
+            _mode = InputMode.None;
+            _board.ClearHighlights();
+            _board.SetRerollInteractable(false);
+        }
+
+        /// <summary>
+        /// 사람 턴 시작. <b>주사위가 트레이에서 자리를 잡은 뒤에</b> 입력을 연다.
+        /// 굴림·이동 연출은 1초쯤 걸리는데, 그 사이에 리롤을 누르면
+        /// 이동 중이던 주사위가 좌측 슬롯으로 순간이동한다.
+        /// </summary>
+        private IEnumerator HumanTurn()
+        {
+            LockInput();
+            yield return _board.WaitForTrayIdle();
+            SetHumanInput();
         }
 
         private void SetHumanInput()
@@ -199,9 +220,7 @@ namespace DiceBattle.UI
 
         private void BeginReroll()
         {
-            _mode = InputMode.None;
-            _board.SetRerollInteractable(false);
-            _board.ClearHighlights(); // 선택 중에는 라인 배치 불가
+            LockInput(); // 선택 중에는 라인 배치도 불가
             StartCoroutine(RerollRoutine());
         }
 
@@ -209,8 +228,7 @@ namespace DiceBattle.UI
         {
             _rerollCandidate = _game.RollRerollCandidate();
 
-            yield return StartCoroutine(
-                _board.RollCandidateRoutine(_rerollCandidate.Value, _rerollCandidate.IsSpecial));
+            yield return StartCoroutine(_board.RollCandidateRoutine(_rerollCandidate));
 
             _mode = InputMode.RerollPick;
         }
@@ -246,17 +264,13 @@ namespace DiceBattle.UI
                     && s.Field(Ai)[line].HasRemovableValue(s.PendingDice.Value);
                 if (!myLine && !removalTarget) return;
 
-                _mode = InputMode.None;
-                _board.ClearHighlights();
-                _board.SetRerollInteractable(false); // 배치 연출 중에는 잠금
+                LockInput(); // 배치 연출 중에는 잠금
                 StartCoroutine(HumanPrimary(line));
             }
             else if (_mode == InputMode.Extra)
             {
                 if (!s.Field(field)[line].HasSpace) return;
-                _mode = InputMode.None;
-                _board.ClearHighlights();
-                _board.SetRerollInteractable(false); // 배치 연출 중에는 잠금
+                LockInput(); // 배치 연출 중에는 잠금
                 StartCoroutine(HumanExtra(field, line));
             }
         }
@@ -364,15 +378,18 @@ namespace DiceBattle.UI
 
         private IEnumerator AiTurn()
         {
-            _mode = InputMode.None;
-            _board.ClearHighlights();
-            _board.SetRerollInteractable(false); // 리롤은 플레이어 전용
+            LockInput(); // 리롤은 플레이어 전용
 
             var s = _game.State;
             while (!s.IsGameOver && s.CurrentPlayer == Ai)
             {
                 // 이번 손패(주사위)는 트레이에 굴려져 표시된 상태. 인지할 시간을 준 뒤 행동.
                 yield return new WaitForSeconds(AiThinkDelay);
+
+                // 배치 연출이 주사위의 실제 위치에서 출발하도록 확인만 한다.
+                // 굴림은 생각 시간보다 짧아 보통 0프레임이다 — 앞에 두면 두 시간이
+                // 겹치지 못하고 순차로 더해져 AI 턴이 통째로 느려진다.
+                yield return _board.WaitForTrayIdle();
 
                 if (s.Phase == TurnPhase.AwaitingPrimaryPlacement)
                 {

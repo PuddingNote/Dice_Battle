@@ -131,8 +131,17 @@ namespace DiceBattle.UI
         }
 
         /// <summary>리롤 후보를 굴려 기존 주사위 우측에 붙이는 연출(완료까지 대기).</summary>
-        public IEnumerator RollCandidateRoutine(int value, bool special)
-            => _tray.RollCandidateRoutine(value, special);
+        public IEnumerator RollCandidateRoutine(Dice candidate)
+            => _tray.RollCandidateRoutine(candidate);
+
+        /// <summary>
+        /// 트레이 주사위가 굴러 제자리에 설 때까지 대기한다.
+        /// 이동 도중에 리롤이나 배치를 받으면 주사위가 순간이동한다.
+        /// </summary>
+        public IEnumerator WaitForTrayIdle()
+        {
+            while (_tray.IsRolling) yield return null;
+        }
 
         /// <summary>선택 확정 연출: 안 고른 주사위는 아래로 사라지고 고른 주사위가 자리를 잡는다.</summary>
         public IEnumerator ResolvePickRoutine(int picked) => _tray.ResolvePickRoutine(picked);
@@ -390,9 +399,10 @@ namespace DiceBattle.UI
         public void AbortAnimations()
         {
             StopAllCoroutines();
-            AudioManager.StopDiceShake(); // 굴림 코루틴이 끊겨도 소리는 남으므로 직접 정리
+            // 굴림 코루틴을 밖에서 끊으면 소리와 "굴리는 중" 표시가 그대로 남는다.
+            // HideDie가 둘 다 정리하므로 반드시 StopAllCoroutines 뒤에 부른다.
+            _tray.HideDie();
             ClearFx();
-            SetTrayPickable(false);
             SetRerollInteractable(false);
         }
 

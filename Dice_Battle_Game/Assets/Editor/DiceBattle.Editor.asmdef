@@ -1,0 +1,19 @@
+{
+    "name": "DiceBattle.Editor",
+    "rootNamespace": "DiceBattle.EditorTools",
+    "references": [
+        "DiceBattle.Core",
+        "DiceBattle.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

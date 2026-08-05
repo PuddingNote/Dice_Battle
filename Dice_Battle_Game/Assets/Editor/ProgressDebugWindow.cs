@@ -21,7 +21,7 @@ namespace DiceBattle.EditorTools
         private static void Open()
         {
             var window = GetWindow<ProgressDebugWindow>("진행도");
-            window.minSize = new Vector2(320f, 420f);
+            window.minSize = new Vector2(340f, 620f); // 전적 항목이 늘어 세로가 더 필요하다
             window._scoreInput = PlayerProgress.Score;
         }
 
@@ -97,12 +97,49 @@ namespace DiceBattle.EditorTools
                 Repaint();
             }
 
+            DrawStats();
+
             if (!Application.isPlaying) return;
 
             EditorGUILayout.Space();
             EditorGUILayout.HelpBox(
                 "플레이 중에 바꾼 값은 메인 메뉴나 난이도 선택 화면을 다시 열어야 반영된다.",
                 MessageType.Info);
+        }
+
+        /// <summary>
+        /// 전적 확인용. 화면이 네 자리 판수에서도 깨지지 않는지 보려면 수십 판을 둘 수는 없다.
+        /// 승/패/무 비율은 실제에 가깝게 채워진다.
+        /// </summary>
+        private void DrawStats()
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("전적", EditorStyles.boldLabel);
+
+            var s = PlayerStats.Data;
+            EditorGUILayout.LabelField("전적",
+                $"{s.wins}승 {s.losses}패 {s.draws}무 ({s.TotalMatches}판)");
+            EditorGUILayout.LabelField("승률", $"{s.WinRate * 100d:F1}%");
+            EditorGUILayout.LabelField("최고 연승", $"{s.bestStreak} (현재 {s.currentStreak})");
+            EditorGUILayout.LabelField("판당 평균 제거", $"{s.AverageRemoved:F1}개");
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("전적 30판 채우기")) SeedStats(30);
+                if (GUILayout.Button("300판")) SeedStats(300);
+                if (GUILayout.Button("전적 초기화"))
+                {
+                    PlayerStats.Reset();
+                    Repaint();
+                }
+            }
+        }
+
+        private void SeedStats(int matches)
+        {
+            // 매번 다른 표본이 나오도록 시각을 시드로 쓴다.
+            PlayerStats.EditorSeed(matches, System.Environment.TickCount);
+            Repaint();
         }
 
         private void Apply(int score, bool alsoLowerHighest)

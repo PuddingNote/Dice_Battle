@@ -24,6 +24,9 @@ namespace DiceBattle.UI
         // 점수 정산도 이 값으로 해야 도중에 기준이 흔들리지 않는다.
         private int _level;
 
+        /// <summary>이번 판에서 내가 제거한 상대 주사위 누적 개수(전적 집계용).</summary>
+        private int _humanRemoved;
+
         // 리롤: 판당 1회. 사용하면 그 판이 끝날 때까지 다시 못 쓴다.
         private bool _rerollAvailable;
         // 광고를 보고 얻는 추가 리롤. 기본 리롤과 별도로 판당 1회.
@@ -77,11 +80,18 @@ namespace DiceBattle.UI
         /// <summary>이번 판의 난이도(시작 시점에 고정).</summary>
         public int Level => _level;
 
+        /// <summary>
+        /// 이번 판에서 <b>내가</b> 제거한 상대 주사위 개수(제거가 일어난 횟수가 아니다).
+        /// 전적 집계용이라 판이 시작될 때마다 0으로 돌아간다.
+        /// </summary>
+        public int HumanRemovedThisMatch => _humanRemoved;
+
         /// <summary>지정 난이도로 새 대전 시작(선공 랜덤).</summary>
         public void StartMatch(int level)
         {
             StopAllCoroutines();
             _level = level;
+            _humanRemoved = 0;
             _mode = InputMode.None;
             _rerollAvailable = true; // 판마다 1회 충전
             _adRerollAvailable = true; // 광고로 얻는 추가 리롤도 판당 1회
@@ -327,6 +337,10 @@ namespace DiceBattle.UI
             }
 
             var res = _game.PlacePrimary(line);
+
+            // 제거는 기본 배치에서만 일어난다(추가 배치는 제거를 유발하지 않는다).
+            // 그래서 DoExtra에는 같은 집계가 없다.
+            if (actor == _human) _humanRemoved += res.RemovedCount;
 
             if (res.RemovalOccurred)
             {

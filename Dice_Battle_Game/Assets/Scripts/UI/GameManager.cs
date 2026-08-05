@@ -28,6 +28,7 @@ namespace DiceBattle.UI
         private SettingsPanelView _settings;
         private ManualView _manual;
         private CreditsView _credits;
+        private StatsView _stats;
 
         private ScreenId _screen = ScreenId.Menu;
 
@@ -66,6 +67,7 @@ namespace DiceBattle.UI
             _menu = menuGo.AddComponent<MenuView>();
             _menu.Build(canvasRoot);
             _menu.StartRequested += ShowDifficultySelect;
+            _menu.StatsRequested += () => _stats.Open();
             _menu.ManualRequested += () => _manual.Open();
 
             var selectGo = new GameObject("DifficultySelectView");
@@ -83,6 +85,9 @@ namespace DiceBattle.UI
             _settings.ManualRequested += () => _manual.Open();
             _credits = new CreditsView(canvasRoot);
             _settings.CreditsRequested += () => _credits.Open();
+
+            // 전적은 메인 메뉴에서만 열리므로 설정 창과 겹칠 일이 없다.
+            _stats = new StatsView(canvasRoot);
 
             // 뒤로가기 다이얼로그는 항상 최상단에 오도록 마지막에 생성.
             _dialog = new ConfirmDialogView(canvasRoot);
@@ -202,6 +207,11 @@ namespace DiceBattle.UI
                 _credits.Close();
                 return;
             }
+            if (_stats.IsOpen)
+            {
+                _stats.Close();
+                return;
+            }
             if (_settings.IsOpen)
             {
                 _settings.Close();
@@ -260,6 +270,9 @@ namespace DiceBattle.UI
             // 낮은 난이도를 골라 놓고 높은 난이도의 점수를 받게 된다.
             ProgressUpdate update = PlayerProgress.ApplyResult(result, _controller.Level);
             _lastResult = update; // "계속하기"가 어디로 갈지 이 값으로 갈린다
+
+            // 전적도 같은 난이도 기준으로 누적한다. 점수 정산과 어긋나면 안 된다.
+            PlayerStats.ApplyMatch(result, _controller.Level, _controller.HumanRemovedThisMatch);
 
             string sign = update.Delta > 0 ? "+" : "";
             string scoreLine =

@@ -96,10 +96,14 @@ namespace DiceBattle.UI
         public const int MenuScoreFontSize = 52;    // "점수 80 · Lv.1"
         public const int MenuStartFontSize = 52;    // "게임 시작"
         public const int MenuManualFontSize = 52;   // "게임 설명서"
-        public const float MenuStartButtonWidth = 540f;
+        public const int MenuStatsFontSize = 52;    // "전적"
+        // "전적"과 "게임 설명서"가 한 줄에 나란히 서고, 그 아래 "게임 시작"이 혼자 한 줄을 쓴다.
+        // 윗줄(320 + 40 + 320 = 680)과 폭을 맞춰야 세 버튼이 한 덩어리로 보인다.
+        public const float MenuStartButtonWidth = 680f;
         public const float MenuStartButtonHeight = 120f;
-        public const float MenuManualButtonWidth = 540f;
-        public const float MenuManualButtonHeight = 120f;
+        public const float MenuPairButtonWidth = 320f;
+        public const float MenuPairButtonHeight = 120f;
+        public const int MenuPairGap = 40;
         public const int MenuBottomPadding = 90;    // 시작 버튼이 얼마나 아래에 붙는지
         // 남는 세로 공간을 제목 위(Head)와 제목~점수 사이(Title)가 이 비율로 나눠 갖는다.
         // Title 쪽을 키우면 제목이 위로 올라가고, Head 쪽을 키우면 제목이 아래로 내려온다.
@@ -151,6 +155,16 @@ namespace DiceBattle.UI
         public const int UpdateBodyFontSize = 42;
         public const float UpdateButtonWidth = 460f;
         public const float UpdateButtonHeight = 130f;
+
+        // ---- 전적 창 ----
+        public const float StatsWindowWidth = 1300f;
+        public const float StatsWindowHeight = 800f;
+        public const int StatsTitleFontSize = 58;
+        // 라벨은 값보다 한 단계 작고 흐리게 둬서 값이 먼저 읽히게 한다.
+        public const int StatsLabelFontSize = 40;
+        public const int StatsValueFontSize = 44;
+        public const float StatsRowHeight = 76f;
+        public const int StatsRowSpacing = 14;
 
         // ---- 크레딧 창 ----
         public const float CreditsWindowWidth = 1300f;

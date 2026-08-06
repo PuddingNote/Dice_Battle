@@ -59,10 +59,10 @@ namespace DiceBattle.UI
 
             var buttonRow = UiFactory.CreateRect("ButtonRow", window);
             UiFactory.AddHorizontalLayout(buttonRow.gameObject, 0, new RectOffset(0, 0, 0, 0));
-            UiFactory.SetPreferredHeight(buttonRow.gameObject, 120f);
+            UiFactory.SetPreferredHeight(buttonRow.gameObject, 100f);
 
             var closeButton = UiFactory.CreateButton("CloseButton", buttonRow.transform, UiTheme.Button);
-            UiFactory.SetSize(closeButton.gameObject, 320f, 110f);
+            UiFactory.SetSize(closeButton.gameObject, 280f, 96f);
             var closeLabel = UiFactory.CreateText("Label", closeButton.transform, "닫기",
                 UiTheme.StatusFontSize, Color.white);
             UiFactory.Stretch(closeLabel.rectTransform);

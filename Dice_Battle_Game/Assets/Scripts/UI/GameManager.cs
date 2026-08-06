@@ -29,6 +29,13 @@ namespace DiceBattle.UI
         private ManualView _manual;
         private CreditsView _credits;
         private StatsView _stats;
+        private AttendanceView _attendance;
+
+        /// <summary>직전 판의 코인 지급액. 보호권을 쓴 뒤 결과 문구를 다시 쓸 때 필요하다.</summary>
+        private int _lastCoinReward;
+
+        /// <summary>이번 결과 화면에서 보호권을 썼는가. 점수 줄 문구가 갈린다.</summary>
+        private bool _protectionUsedThisResult;
 
         private ScreenId _screen = ScreenId.Menu;
 
@@ -51,6 +58,8 @@ namespace DiceBattle.UI
             boardGo.transform.SetParent(transform, false);
             _board = boardGo.AddComponent<BoardView>();
             _board.Build(canvasRoot, Human);
+            // 보호권은 점수·코인을 모두 건드리므로 컨트롤러가 아니라 여기서 받는다.
+            _board.ProtectClicked += OnProtectClicked;
 
             var controllerGo = new GameObject("GameController");
             controllerGo.transform.SetParent(transform, false);
@@ -89,6 +98,10 @@ namespace DiceBattle.UI
             // 전적은 메인 메뉴에서만 열리므로 설정 창과 겹칠 일이 없다.
             _stats = new StatsView(canvasRoot);
 
+            // 출석은 메인 메뉴에 들어올 때 받을 것이 있으면 저절로 열린다.
+            _attendance = new AttendanceView(canvasRoot);
+            _attendance.Claimed += RefreshMenu;
+
             // 뒤로가기 다이얼로그는 항상 최상단에 오도록 마지막에 생성.
             _dialog = new ConfirmDialogView(canvasRoot);
 
@@ -116,9 +129,17 @@ namespace DiceBattle.UI
             _screen = ScreenId.Menu;
             _board.SetVisible(false);
             _select.SetVisible(false);
-            _menu.SetScore(PlayerProgress.Score, PlayerProgress.MaxUnlockedLevel);
+            RefreshMenu();
             _menu.SetVisible(true);
+
+            // 하루 한 번뿐이라 성가시지 않고, 버튼으로 두면 존재를 모르는 사람이 생긴다.
+            _attendance.OpenIfAvailable();
         }
+
+        /// <summary>메뉴의 점수·코인 표시를 지금 값으로 다시 그린다.</summary>
+        private void RefreshMenu()
+            => _menu.SetScore(PlayerProgress.Score, PlayerProgress.MaxUnlockedLevel,
+                PlayerWallet.Coins);
 
         /// <summary>메인 메뉴에서 들어온 경우. 고를 수 있는 가장 높은 난이도가 잡혀 있다.</summary>
         private void ShowDifficultySelect()
@@ -212,6 +233,11 @@ namespace DiceBattle.UI
                 _stats.Close();
                 return;
             }
+            if (_attendance.IsOpen)
+            {
+                _attendance.Close();
+                return;
+            }
             if (_settings.IsOpen)
             {
                 _settings.Close();
@@ -274,16 +300,72 @@ namespace DiceBattle.UI
             // 전적도 같은 난이도 기준으로 누적한다. 점수 정산과 어긋나면 안 된다.
             PlayerStats.ApplyMatch(result, _controller.Level, _controller.HumanRemovedThisMatch);
 
-            string sign = update.Delta > 0 ? "+" : "";
-            string scoreLine =
-                $"Lv.{_controller.Level}   점수 {sign}{update.Delta}  →  {update.Score}";
+            // 코인도 마찬가지로 그 판의 난이도로 계산한다.
+            _lastCoinReward = PlayerWallet.GrantMatchReward(result, _controller.Level);
+            _protectionUsedThisResult = false;
+
+            _board.ShowResult(outcome, ResultScoreLine());
+
+            // 졌을 때만, 코인이 충분하고 오늘 아직 안 썼을 때만 보호권을 제안한다.
+            _board.SetProtectOffer(result == PlayerMatchResult.Lose
+                                   && PlayerWallet.CanUseCoinProtection(_controller.Level));
+        }
+
+        /// <summary>
+        /// 결과 화면의 점수 줄. 보호권을 쓰면 같은 형식으로 다시 그려야 하므로 따로 뺐다.
+        /// </summary>
+        private string ResultScoreLine()
+        {
+            ProgressUpdate update = _lastResult;
+
+            string line;
+            if (_protectionUsedThisResult)
+            {
+                // 되돌린 뒤에는 "-50 → 1230"이 거짓이 된다. 지켰다는 사실을 그대로 쓴다.
+                line = $"Lv.{_controller.Level}   " +
+                       $"<color={UnlockColorHex}>점수 보호</color>  →  {PlayerProgress.Score}";
+            }
+            else
+            {
+                string sign = update.Delta > 0 ? "+" : "";
+                line = $"Lv.{_controller.Level}   점수 {sign}{update.Delta}  →  {update.Score}";
+            }
+
+            line += $"\n<color={UiTheme.CoinColorHex}>+{_lastCoinReward} 코인</color>";
 
             // 결과 문구는 이미 9줄 가까이 되어 아래 버튼과 여유가 없다.
             // 색으로 충분히 구분되므로 빈 줄을 넣지 않는다.
             if (update.HasNewUnlock)
-                scoreLine += $"\n<color={UnlockColorHex}>{UnlockedRange(update)} 해금!</color>";
+                line += $"\n<color={UnlockColorHex}>{UnlockedRange(update)} 해금!</color>";
 
-            _board.ShowResult(outcome, scoreLine);
+            return line;
+        }
+
+        /// <summary>
+        /// 결과 화면의 "점수 보호권 사용".
+        /// 코인이 걸린 되돌릴 수 없는 선택이므로, 광고 리롤과 같이 확인을 먼저 받는다.
+        /// </summary>
+        private void OnProtectClicked()
+        {
+            int price = PlayerWallet.ProtectionPrice(_controller.Level);
+            _dialog.Open($"{price:N0}코인을 사용해\n점수를 지키겠습니까?",
+                "돌아가기", "사용", UseProtection);
+        }
+
+        /// <summary>
+        /// <b>패배는 이미 반영된 뒤에 되돌린다.</b> 선택할 때까지 정산을 미루면 결과
+        /// 화면에서 앱을 끄는 것만으로 패배가 사라지는 구멍이 생긴다.
+        /// </summary>
+        private void UseProtection()
+        {
+            int level = _controller.Level;
+            if (!PlayerWallet.TryUseCoinProtection(level)) return;
+
+            PlayerProgress.RefundLoss(PlayerProgress.Tier(level).LosePoints);
+            _protectionUsedThisResult = true;
+
+            _board.SetProtectOffer(false);
+            _board.UpdateResultScoreLine(ResultScoreLine());
         }
 
         /// <summary>

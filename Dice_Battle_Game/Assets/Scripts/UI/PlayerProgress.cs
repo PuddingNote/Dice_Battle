@@ -95,6 +95,21 @@ namespace DiceBattle.UI
             return update;
         }
 
+        /// <summary>
+        /// 패배 보호권으로 차감된 점수를 되돌린다.
+        ///
+        /// <b>패배는 이미 반영된 뒤에 되돌린다.</b> 결과 화면에서 선택할 때까지 정산을
+        /// 미루면, 결과 화면에서 앱을 껐을 때 패배가 통째로 사라지는 구멍이 생긴다.
+        ///
+        /// 최고 점수는 건드리지 않는다. 되돌린 점수는 패배 직전 값이고 그 값은 이미
+        /// 최고 점수 이하였으므로, 어떤 경우에도 최고 점수를 넘지 않는다.
+        /// </summary>
+        public static void RefundLoss(int points)
+        {
+            if (points <= 0) return;
+            Score = Score + points;
+        }
+
 #if UNITY_EDITOR
         /// <summary>
         /// 에디터 전용: 점수를 직접 지정한다(난이도 해금 확인용).

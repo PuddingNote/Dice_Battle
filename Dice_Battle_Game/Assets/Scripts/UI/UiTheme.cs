@@ -156,9 +156,41 @@ namespace DiceBattle.UI
         public const float UpdateButtonWidth = 460f;
         public const float UpdateButtonHeight = 130f;
 
+        // ---- 코인 ----
+        // 코인 액수는 점수와 섞이지 않게 금색으로 뽑는다(특수 주사위와 같은 색).
+        public static readonly Color Coin = new Color(1f, 0.86f, 0.35f, 1f);
+        public const string CoinColorHex = "#FFDB59";
+
+        // ---- 출석 창 ----
+        public const float AttendanceWindowWidth = 1420f;
+        public const float AttendanceWindowHeight = 620f;
+        public const int AttendanceTitleFontSize = 58;
+        public const int AttendanceBodyFontSize = 38;
+        // 7칸을 한 줄로. 1420 - 좌우 여백 120 = 1300, (7 x 170) + (6 x 18) = 1298
+        public const float AttendanceCellWidth = 170f;
+        public const float AttendanceCellHeight = 200f;
+        public const int AttendanceCellGap = 18;
+        public const int AttendanceDayFontSize = 30;
+        public const int AttendanceRewardFontSize = 44;
+        // 이미 받은 칸. 아직 안 받은 칸(LineNormal, 알파 15/255)보다 더 흐리다.
+        public static readonly Color AttendanceCellClaimed = new Color(1f, 1f, 1f, 5f / 255f);
+        // 셀 모서리 곡률(Image의 Pixels Per Unit Multiplier). 값이 작을수록 더 둥글다.
+        // 0.18은 내장 UISprite를 뜬 스킨 스프라이트 기준으로 맞춘 값이다.
+        // 스킨이 비어 코드 생성 스프라이트로 대체되면 곡률이 달라 보일 수 있다.
+        public const float AttendanceCellRoundness = 0.18f;
+
+        // ---- 결과 화면 보호권 버튼 ----
+        public const float ResultButtonWidth = 400f;
+        public const float ResultButtonHeight = 130f;
+        // 버튼이 셋으로 늘 수 있어 줄 폭을 넉넉히 잡는다(400 x 3 + 간격 80 = 1280).
+        public const float ResultButtonRowWidth = 1300f;
+        public static readonly Color ProtectButton = new Color(0.72f, 0.52f, 0.16f, 1f);
+
         // ---- 전적 창 ----
         public const float StatsWindowWidth = 1300f;
-        public const float StatsWindowHeight = 800f;
+        // 항목 6줄 + 제목 + 버튼이 창 안에 다 들어가야 하는 높이다.
+        // 여백 72 + 제목 90 + 줄 456 + 버튼줄 100 + 간격 112 = 830. 남는 50은 버튼 위 여백.
+        public const float StatsWindowHeight = 880f;
         public const int StatsTitleFontSize = 58;
         // 라벨은 값보다 한 단계 작고 흐리게 둬서 값이 먼저 읽히게 한다.
         public const int StatsLabelFontSize = 40;

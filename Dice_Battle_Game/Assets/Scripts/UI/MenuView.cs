@@ -106,10 +106,13 @@ namespace DiceBattle.UI
         }
 
         /// <param name="unlockedLevel">해금한 가장 높은 난이도.</param>
-        public void SetScore(int score, int unlockedLevel)
+        /// <param name="coins">보유 코인. 점수와 섞여 읽히지 않도록 금색으로 뽑는다.</param>
+        public void SetScore(int score, int unlockedLevel, int coins)
         {
-            if (_scoreText != null)
-                _scoreText.text = $"점수 {score}   ·   Lv.{unlockedLevel}";
+            if (_scoreText == null) return;
+
+            _scoreText.text = $"점수 {score}   ·   Lv.{unlockedLevel}   ·   " +
+                              $"<color={UiTheme.CoinColorHex}>{coins:N0}</color> 코인";
         }
 
         public void SetVisible(bool visible)

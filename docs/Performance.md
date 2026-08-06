@@ -157,7 +157,28 @@ imageconversion 등)은 남겼다. 깨질 위험 대비 이득이 없다.
 
 ---
 
-## 9. 그 밖
+## 9. 유니티 내장 UI 스프라이트는 코드로 쓰면 안 된다
+
+`UISprite`, `Background` 같은 내장 UI 스프라이트는 `unity_builtin_extra`에 들어 있어
+**에디터에서만** 읽힌다. `Resources.GetBuiltinResource`로 코드에서 참조하면 에디터에서는
+멀쩡하다가 **빌드에서 null이 된다.** 실기기에서만 모서리가 각지게 나오는 식으로
+조용히 깨지므로 알아채기도 늦다.
+
+이 프로젝트는 프리팹이 없어 인스펙터로 참조를 걸어 둘 수도 없다.
+
+그래서 **DiceBattle → 내장 UI 스프라이트 추출** 메뉴를 두었다. 에디터에서 픽셀을
+그대로 떠서 `Assets/Arts/ui_rounded_panel.png`로 저장하고 `UiSkin.roundedPanel`에
+자동으로 연결한다. 저장된 뒤로는 평범한 프로젝트 에셋이라 빌드에 정상적으로 들어간다.
+
+**9-슬라이스 경계와 PPU도 원본 값을 그대로 옮긴다.** 이 값이 틀리면 모서리가 늘어나
+전혀 다른 모양이 되므로, 눈대중으로 비슷한 그림을 만드는 것으로는 대체할 수 없다.
+
+같은 이유로 [UiSprites.cs](../Dice_Battle_Game/Assets/Scripts/UI/UiSprites.cs)가 둥근
+사각형을 코드로 생성한다. 스킨이 비어 있을 때의 폴백이다.
+
+---
+
+## 10. 그 밖
 
 - `accelerometerFrequency: 0` — 가속도 센서를 쓰지 않는데 초당 60회 폴링하고 있었다.
 - `stripEngineCode: 1`, IL2CPP, ARM64, Target SDK 36 — 이미 잘 잡혀 있다.
@@ -170,7 +191,7 @@ imageconversion 등)은 남겼다. 깨질 위험 대비 이득이 없다.
 
 ---
 
-## 10. 관련 파일
+## 11. 관련 파일
 
 - [SampleScene.unity](../Dice_Battle_Game/Assets/Scenes/SampleScene.unity) — 카메라, 라이트, 볼륨
 - [Mobile_RPAsset.asset](../Dice_Battle_Game/Assets/Settings/Mobile_RPAsset.asset) — URP 모바일 설정

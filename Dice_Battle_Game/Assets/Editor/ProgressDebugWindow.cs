@@ -16,12 +16,15 @@ namespace DiceBattle.EditorTools
     public sealed class ProgressDebugWindow : EditorWindow
     {
         private int _scoreInput;
+        private int _coinInput;
+        private Vector2 _scroll;
 
         [MenuItem("DiceBattle/진행도(디버그)")]
         private static void Open()
         {
             var window = GetWindow<ProgressDebugWindow>("진행도");
-            window.minSize = new Vector2(340f, 620f); // 전적 항목이 늘어 세로가 더 필요하다
+            window.minSize = new Vector2(340f, 820f); // 전적·코인 항목까지 들어간 높이
+            window._coinInput = PlayerWallet.Coins;
             window._scoreInput = PlayerProgress.Score;
         }
 
@@ -48,6 +51,14 @@ namespace DiceBattle.EditorTools
         }
 
         private void OnGUI()
+        {
+            // 항목이 점수·난이도·전적·코인까지 늘어 창을 작게 띄우면 아래가 잘린다.
+            _scroll = EditorGUILayout.BeginScrollView(_scroll);
+            DrawBody();
+            EditorGUILayout.EndScrollView();
+        }
+
+        private void DrawBody()
         {
             DifficultyTable table = Table();
             int score = PlayerProgress.Score;
@@ -98,6 +109,7 @@ namespace DiceBattle.EditorTools
             }
 
             DrawStats();
+            DrawWallet();
 
             if (!Application.isPlaying) return;
 
@@ -132,6 +144,129 @@ namespace DiceBattle.EditorTools
                     PlayerStats.Reset();
                     Repaint();
                 }
+            }
+        }
+
+        /// <summary>
+        /// 코인·출석·보호권 확인용.
+        /// 출석과 보호권은 하루 1회라 그냥은 하루에 한 번밖에 못 본다.
+        /// </summary>
+        private void DrawWallet()
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("코인", EditorStyles.boldLabel);
+
+            var w = PlayerWallet.Data;
+            EditorGUILayout.LabelField("보유", $"{w.coins:N0}");
+
+            int index = PlayerWallet.AttendanceIndex;
+            string attendance = index >= CoinRules.AttendanceCycleLength
+                ? "이번 주 완료"
+                : $"{index + 1}일차 ({CoinRules.AttendanceReward(index)}코인) " +
+                  $"{(PlayerWallet.CanClaimAttendance ? "수령 가능" : "오늘 받음")}";
+            EditorGUILayout.LabelField("다음 출석", attendance);
+
+            DrawDateTravel();
+
+            _coinInput = EditorGUILayout.IntField("코인 지정", _coinInput);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("적용"))
+                {
+                    PlayerWallet.EditorSetCoins(_coinInput);
+                    Repaint();
+                }
+                if (GUILayout.Button("+1000"))
+                {
+                    PlayerWallet.EditorSetCoins(w.coins + 1000);
+                    _coinInput = PlayerWallet.Coins;
+                    Repaint();
+                }
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("오늘 제한 해제"))
+                {
+                    // 출석과 보호권을 다시 쓸 수 있게 만든다(날짜를 안 건드리고).
+                    PlayerWallet.EditorClearDailyLimits();
+                    Repaint();
+                }
+                if (GUILayout.Button("지갑 초기화"))
+                {
+                    PlayerWallet.Reset();
+                    _coinInput = 0;
+                    Repaint();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 게임이 보는 "오늘"을 밀어 본다.
+        ///
+        /// 출석은 하루 한 번뿐이라 2일차 이후를 보려면 날짜가 지나야 한다. 실제로 기다릴
+        /// 수도 없고 윈도우 시계를 만지면 다른 프로그램까지 영향을 받으므로, 게임 안에서만
+        /// 날짜를 옮긴다. 월요일까지 밀면 주간 초기화도 그대로 확인된다.
+        /// </summary>
+        private void DrawDateTravel()
+        {
+            int today = PlayerWallet.Today;
+            System.DateTime date = WalletData.DateOf(today);
+            int offset = PlayerWallet.EditorDayOffset;
+
+            string label = $"{date:yyyy-MM-dd} ({Weekday(date)})";
+            if (offset != 0) label += $"   [{offset:+#;-#;0}일]";
+            EditorGUILayout.LabelField("게임이 보는 날짜", label);
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("← 하루 전")) Travel(-1);
+                if (GUILayout.Button("하루 뒤 →")) Travel(1);
+                if (GUILayout.Button("다음 월요일")) TravelToNextMonday(today);
+                if (GUILayout.Button("실제 날짜로"))
+                {
+                    PlayerWallet.EditorDayOffset = 0;
+                    Repaint();
+                }
+            }
+
+            if (offset != 0)
+            {
+                EditorGUILayout.HelpBox(
+                    "날짜를 밀어 둔 상태입니다. 출석·보호권의 하루 제한이 이 날짜를 따릅니다.\n\n" +
+                    "미래에서 출석을 받은 뒤 [실제 날짜로] 돌아오면, 시계를 되돌린 것으로 보여 " +
+                    "그날이 실제로 올 때까지 출석이 잠깁니다. 그때는 [오늘 제한 해제]로 지우세요.",
+                    MessageType.Warning);
+            }
+        }
+
+        private void Travel(int days)
+        {
+            PlayerWallet.EditorDayOffset += days;
+            Repaint();
+        }
+
+        /// <summary>주간 초기화를 보려면 월요일까지 가야 한다. 한 번에 건너뛴다.</summary>
+        private void TravelToNextMonday(int today)
+        {
+            int step = 1;
+            while (step < 8 && WalletData.WeekOf(today + step) == WalletData.WeekOf(today))
+                step++;
+
+            Travel(step);
+        }
+
+        private static string Weekday(System.DateTime date)
+        {
+            switch (date.DayOfWeek)
+            {
+                case System.DayOfWeek.Monday: return "월";
+                case System.DayOfWeek.Tuesday: return "화";
+                case System.DayOfWeek.Wednesday: return "수";
+                case System.DayOfWeek.Thursday: return "목";
+                case System.DayOfWeek.Friday: return "금";
+                case System.DayOfWeek.Saturday: return "토";
+                default: return "일";
             }
         }
 

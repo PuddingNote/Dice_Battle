@@ -77,6 +77,12 @@ namespace DiceBattle.UI
         [Tooltip("선택 사항. 비워두면 기본 표식인 ★ 를 사용한다(현재 채택된 표시).")]
         public Sprite winStamp;
 
+        [Header("범용 둥근 패널")]
+        [Tooltip("출석 칸 같은 둥근 배경에 쓰는 9-슬라이스 스프라이트. " +
+                 "DiceBattle → 내장 UI 스프라이트 추출 메뉴가 자동으로 채워 준다. " +
+                 "비우면 코드로 만든 둥근 사각형으로 대체된다.")]
+        public Sprite roundedPanel;
+
         public Sprite DiceFace(DiceSide side, int value)
         {
             var arr = side == DiceSide.Ai ? aiDiceFaces : playerDiceFaces;
@@ -104,6 +110,7 @@ namespace DiceBattle.UI
         public static Sprite SliderHandle => Active != null ? Active.sliderHandle : null;
         public static Sprite Tray => Active != null ? Active.tray : null;
         public static Sprite WinStamp => Active != null ? Active.winStamp : null;
+        public static Sprite RoundedPanel => Active != null ? Active.roundedPanel : null;
         public static Sprite Face(DiceSide side, int value) => Active != null ? Active.DiceFace(side, value) : null;
         public static Font ActiveFont => Active != null ? Active.font : null;
         public static TMP_FontAsset ActiveFontAsset => Active != null ? Active.fontAsset : null;

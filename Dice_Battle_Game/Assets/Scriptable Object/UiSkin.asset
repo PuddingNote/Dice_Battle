@@ -46,3 +46,4 @@ MonoBehaviour:
   sliderHandle: {fileID: 0}
   tray: {fileID: 1462395806, guid: ea27e41f38f6be841a9a853077849ccb, type: 3}
   winStamp: {fileID: 0}
+  roundedPanel: {fileID: 21300000, guid: 3d6858ce6de8ddf45b5c7dd991537202, type: 3}

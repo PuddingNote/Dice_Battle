@@ -166,6 +166,13 @@ namespace DiceBattle.EditorTools
                   $"{(PlayerWallet.CanClaimAttendance ? "수령 가능" : "오늘 받음")}";
             EditorGUILayout.LabelField("다음 출석", attendance);
 
+            int today = PlayerWallet.Today;
+            EditorGUILayout.LabelField("보호권(오늘)",
+                $"코인 {(w.CanUseCoinProtection(today) ? "가능" : "사용함")}   ·   " +
+                $"광고 {(w.CanUseAdProtection(today) ? "가능" : "사용함")}");
+            EditorGUILayout.LabelField("코인 2배(오늘)",
+                $"{w.DoubleRewardUsedToday(today)} / {CoinRules.DailyDoubleRewardLimit}");
+
             DrawDateTravel();
 
             _coinInput = EditorGUILayout.IntField("코인 지정", _coinInput);
@@ -188,7 +195,7 @@ namespace DiceBattle.EditorTools
             {
                 if (GUILayout.Button("오늘 제한 해제"))
                 {
-                    // 출석과 보호권을 다시 쓸 수 있게 만든다(날짜를 안 건드리고).
+                    // 출석·보호권·2배를 다시 쓸 수 있게 만든다(날짜를 안 건드리고).
                     PlayerWallet.EditorClearDailyLimits();
                     Repaint();
                 }

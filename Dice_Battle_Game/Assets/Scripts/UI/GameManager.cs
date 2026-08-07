@@ -37,6 +37,12 @@ namespace DiceBattle.UI
         /// <summary>이번 결과 화면에서 보호권을 썼는가. 점수 줄 문구가 갈린다.</summary>
         private bool _protectionUsedThisResult;
 
+        /// <summary>이번 결과 화면에서 코인 2배를 받았는가. 한 판에 한 번뿐이다.</summary>
+        private bool _doubledThisResult;
+
+        /// <summary>직전 판의 승패. 부가 버튼이 무엇이 될지 이 값으로 갈린다.</summary>
+        private PlayerMatchResult _lastResultKind;
+
         private ScreenId _screen = ScreenId.Menu;
 
         /// <summary>
@@ -58,8 +64,8 @@ namespace DiceBattle.UI
             boardGo.transform.SetParent(transform, false);
             _board = boardGo.AddComponent<BoardView>();
             _board.Build(canvasRoot, Human);
-            // 보호권은 점수·코인을 모두 건드리므로 컨트롤러가 아니라 여기서 받는다.
-            _board.ProtectClicked += OnProtectClicked;
+            // 부가 버튼은 점수·코인·광고를 모두 건드리므로 컨트롤러가 아니라 여기서 받는다.
+            _board.ExtraClicked += OnExtraClicked;
 
             var controllerGo = new GameObject("GameController");
             controllerGo.transform.SetParent(transform, false);
@@ -275,17 +281,7 @@ namespace DiceBattle.UI
         {
             _dialog.Open("리롤을 모두 사용했습니다.\n광고를 보고 한 번 더 굴릴까요?",
                 "취소", "광고 보기",
-                () => AdManager.ShowRewarded(_controller.GrantAdReroll, OnAdRerollUnavailable));
-        }
-
-        /// <summary>
-        /// 광고가 뜨지 않았거나 도중에 닫은 경우.
-        /// 보상은 주지 않되 왜 안 됐는지는 알려준다(아무 반응이 없으면 고장으로 보인다).
-        /// </summary>
-        private void OnAdRerollUnavailable()
-        {
-            _dialog.Open("광고를 불러오지 못했습니다.\n잠시 후 다시 시도해 주세요.",
-                "닫기", "확인", null);
+                () => AdManager.ShowRewarded(_controller.GrantAdReroll, OnRewardedUnavailable));
         }
 
         private void OnMatchFinished(MatchOutcome outcome)
@@ -303,13 +299,42 @@ namespace DiceBattle.UI
             // 코인도 마찬가지로 그 판의 난이도로 계산한다.
             _lastCoinReward = PlayerWallet.GrantMatchReward(result, _controller.Level);
             _protectionUsedThisResult = false;
+            _doubledThisResult = false;
+            _lastResultKind = result;
 
             _board.ShowResult(outcome, ResultScoreLine());
-
-            // 졌을 때만, 코인이 충분하고 오늘 아직 안 썼을 때만 보호권을 제안한다.
-            _board.SetProtectOffer(result == PlayerMatchResult.Lose
-                                   && PlayerWallet.CanUseCoinProtection(_controller.Level));
+            RefreshExtraOffer();
         }
+
+        /// <summary>
+        /// 결과 화면 부가 버튼을 지금 상태에 맞춰 다시 정한다.
+        /// 패배면 점수 보호, 승리면 코인 2배. 쓸 수 없으면 감춘다.
+        /// </summary>
+        private void RefreshExtraOffer()
+        {
+            switch (_lastResultKind)
+            {
+                case PlayerMatchResult.Lose:
+                    _board.SetExtraOffer(CanProtect(), "점수 보호권 사용");
+                    break;
+
+                case PlayerMatchResult.Win:
+                    _board.SetExtraOffer(!_doubledThisResult && PlayerWallet.CanDoubleReward,
+                        "광고 보고 코인 2배");
+                    break;
+
+                default:
+                    // 무승부는 지킬 점수도, 늘릴 승리 보상도 없다.
+                    _board.SetExtraOffer(false);
+                    break;
+            }
+        }
+
+        /// <summary>코인이든 광고든 한 가지라도 보호가 가능한가.</summary>
+        private bool CanProtect()
+            => !_protectionUsedThisResult
+               && (PlayerWallet.CanUseCoinProtection(_controller.Level)
+                   || PlayerWallet.CanUseAdProtection);
 
         /// <summary>
         /// 결과 화면의 점수 줄. 보호권을 쓰면 같은 형식으로 다시 그려야 하므로 따로 뺐다.
@@ -331,7 +356,9 @@ namespace DiceBattle.UI
                 line = $"Lv.{_controller.Level}   점수 {sign}{update.Delta}  →  {update.Score}";
             }
 
-            line += $"\n<color={UiTheme.CoinColorHex}>+{_lastCoinReward} 코인</color>";
+            // 2배를 받았으면 그 사실을 적는다. 액수만 바뀌면 광고가 먹혔는지 알 수 없다.
+            string doubled = _doubledThisResult ? "  (2배)" : "";
+            line += $"\n<color={UiTheme.CoinColorHex}>+{_lastCoinReward} 코인{doubled}</color>";
 
             // 결과 문구는 이미 9줄 가까이 되어 아래 버튼과 여유가 없다.
             // 색으로 충분히 구분되므로 빈 줄을 넣지 않는다.
@@ -341,31 +368,114 @@ namespace DiceBattle.UI
             return line;
         }
 
-        /// <summary>
-        /// 결과 화면의 "점수 보호권 사용".
-        /// 코인이 걸린 되돌릴 수 없는 선택이므로, 광고 리롤과 같이 확인을 먼저 받는다.
-        /// </summary>
-        private void OnProtectClicked()
+        /// <summary>결과 화면 부가 버튼. 승패에 따라 다른 확인 창을 연다.</summary>
+        private void OnExtraClicked()
         {
-            int price = PlayerWallet.ProtectionPrice(_controller.Level);
-            _dialog.Open($"{price:N0}코인을 사용해\n점수를 지키겠습니까?",
-                "돌아가기", "사용", UseProtection);
+            if (_lastResultKind == PlayerMatchResult.Lose) AskProtection();
+            else if (_lastResultKind == PlayerMatchResult.Win) AskDoubleReward();
+        }
+
+        // ---- 패배 보호권 ----
+
+        /// <summary>
+        /// 코인과 광고 두 가지 길이 있다. 쓸 수 있는 것만 버튼으로 띄운다.
+        /// 코인이 걸린 되돌릴 수 없는 선택이라 광고 리롤과 같이 확인을 먼저 받는다.
+        /// </summary>
+        private void AskProtection()
+        {
+            int level = _controller.Level;
+            bool byCoin = PlayerWallet.CanUseCoinProtection(level);
+            bool byAd = PlayerWallet.CanUseAdProtection;
+
+            if (!byCoin && !byAd) return;
+
+            int price = PlayerWallet.ProtectionPrice(level);
+            string message = byCoin && byAd
+                ? $"점수를 지킬 방법을 고르세요.\n코인 {price:N0} 또는 광고 시청"
+                : byCoin
+                    ? $"{price:N0}코인을 사용해\n점수를 지키겠습니까?"
+                    : "광고를 보고\n점수를 지키겠습니까?";
+
+            // 오른쪽(확인) 자리는 코인, 가운데(선택) 자리는 광고로 고정한다.
+            // 둘 중 하나만 가능하면 그것을 오른쪽에 둔다.
+            if (!byCoin)
+            {
+                _dialog.Open(message, "돌아가기", "광고 보기", WatchAdForProtection);
+                return;
+            }
+
+            if (byAd)
+            {
+                _dialog.Open(message, "돌아가기", $"코인 {price:N0}", UseCoinProtection,
+                    "광고 보기", WatchAdForProtection);
+                return;
+            }
+
+            _dialog.Open(message, "돌아가기", $"코인 {price:N0}", UseCoinProtection);
+        }
+
+        private void UseCoinProtection()
+        {
+            if (!PlayerWallet.TryUseCoinProtection(_controller.Level)) return;
+            ApplyProtection();
+        }
+
+        private void WatchAdForProtection()
+            => AdManager.ShowRewarded(OnProtectionAdWatched, OnRewardedUnavailable);
+
+        private void OnProtectionAdWatched()
+        {
+            // 광고를 끝까지 본 뒤에 소모한다. 도중에 닫으면 하루 한 번이 날아가면 안 된다.
+            if (!PlayerWallet.TryUseAdProtection()) return;
+            ApplyProtection();
         }
 
         /// <summary>
         /// <b>패배는 이미 반영된 뒤에 되돌린다.</b> 선택할 때까지 정산을 미루면 결과
         /// 화면에서 앱을 끄는 것만으로 패배가 사라지는 구멍이 생긴다.
         /// </summary>
-        private void UseProtection()
+        private void ApplyProtection()
         {
-            int level = _controller.Level;
-            if (!PlayerWallet.TryUseCoinProtection(level)) return;
-
-            PlayerProgress.RefundLoss(PlayerProgress.Tier(level).LosePoints);
+            PlayerProgress.RefundLoss(PlayerProgress.Tier(_controller.Level).LosePoints);
             _protectionUsedThisResult = true;
 
-            _board.SetProtectOffer(false);
+            RefreshExtraOffer();
             _board.UpdateResultScoreLine(ResultScoreLine());
+        }
+
+        // ---- 승리 코인 2배 ----
+
+        private void AskDoubleReward()
+        {
+            if (!PlayerWallet.CanDoubleReward) return;
+
+            _dialog.Open(
+                $"광고를 보고 이번 판 코인을\n{_lastCoinReward}에서 {_lastCoinReward * 2}으로 늘릴까요?\n" +
+                $"오늘 {PlayerWallet.DoubleRewardsLeft}번 남음",
+                "돌아가기", "광고 보기",
+                () => AdManager.ShowRewarded(OnDoubleAdWatched, OnRewardedUnavailable));
+        }
+
+        private void OnDoubleAdWatched()
+        {
+            int bonus = PlayerWallet.GrantDoubleReward(_lastCoinReward);
+            if (bonus <= 0) return;
+
+            _lastCoinReward += bonus;
+            _doubledThisResult = true;
+
+            RefreshExtraOffer();
+            _board.UpdateResultScoreLine(ResultScoreLine());
+        }
+
+        /// <summary>
+        /// 광고가 뜨지 않았거나 도중에 닫은 경우. 보상은 주지 않되 왜 안 됐는지는 알려준다.
+        /// 아무 반응이 없으면 고장으로 보인다.
+        /// </summary>
+        private void OnRewardedUnavailable()
+        {
+            _dialog.Open("광고를 불러오지 못했습니다.\n잠시 후 다시 시도해 주세요.",
+                "닫기", "확인", null);
         }
 
         /// <summary>

@@ -26,6 +26,18 @@ namespace DiceBattle.Core
         /// <summary>출석 보상(7일 순환). 난이도와 무관한 유일한 획득처다.</summary>
         public static readonly int[] AttendanceRewards = { 5, 5, 10, 10, 15, 15, 40 };
 
+        /// <summary>
+        /// 승리 코인 2배 광고를 하루에 몇 번까지 볼 수 있는가.
+        ///
+        /// <b>광고 수익이 아니라 코인 경제 때문에 제한한다.</b> 무제한이면 Lv.10 기준
+        /// 하루 수입이 490에서 805로 뛰는데 보호권은 하루 한 번뿐이라, 번 코인의 40%가
+        /// 쓸 데 없이 쌓인다. 3회면 580이 되어 보호권 하루치와 거의 맞아떨어진다.
+        /// </summary>
+        public const int DailyDoubleRewardLimit = 3;
+
+        /// <summary>2배 광고를 봤을 때 받는 추가 코인(원래 지급액과 같은 액수를 한 번 더).</summary>
+        public static int DoubleRewardBonus(int granted) => granted < 0 ? 0 : granted;
+
         public static int AttendanceCycleLength => AttendanceRewards.Length;
 
         /// <summary>승리 코인. Lv.1 = 2, Lv.10 = 30.</summary>

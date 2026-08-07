@@ -29,6 +29,7 @@ namespace DiceBattle.UI
         private Button _continueButton;
         private Button _menuButton;
         private Button _protectButton;
+        private TMP_Text _protectLabel;
 
         /// <summary>결과 문구에서 점수 줄 앞부분(머리말 + 라인 목록). 점수만 다시 쓸 때 쓴다.</summary>
         private string _resultHead = "";
@@ -46,9 +47,10 @@ namespace DiceBattle.UI
         public event Action MenuClicked;
 
         /// <summary>
-        /// 결과 화면의 "점수 보호권 사용". 가격·확인 창·사용 가능 여부는 모두 밖에서 다룬다.
+        /// 결과 화면의 부가 버튼(패배 시 점수 보호, 승리 시 코인 2배).
+        /// 무엇을 뜻하는지·쓸 수 있는지·확인 창은 모두 밖에서 다룬다.
         /// </summary>
-        public event Action ProtectClicked;
+        public event Action ExtraClicked;
 
         /// <summary>리롤 버튼을 눌렀을 때.</summary>
         public event Action RerollClicked;
@@ -187,10 +189,10 @@ namespace DiceBattle.UI
                 UiTheme.ProtectButton);
             UiFactory.SetSize(_protectButton.gameObject,
                 UiTheme.ResultButtonWidth, UiTheme.ResultButtonHeight);
-            var protectLabel = UiFactory.CreateText("Label", _protectButton.transform,
-                "점수 보호권 사용", UiTheme.StatusFontSize, Color.white);
-            UiFactory.Stretch(protectLabel.rectTransform);
-            _protectButton.onClick.AddListener(() => ProtectClicked?.Invoke());
+            _protectLabel = UiFactory.CreateText("Label", _protectButton.transform,
+                "", UiTheme.StatusFontSize, Color.white);
+            UiFactory.Stretch(_protectLabel.rectTransform);
+            _protectButton.onClick.AddListener(() => ExtraClicked?.Invoke());
             _protectButton.gameObject.SetActive(false);
 
             _continueButton = UiFactory.CreateButton("ContinueButton", buttonRow.transform, UiTheme.Button);
@@ -536,7 +538,7 @@ namespace DiceBattle.UI
             _resultHead = $"{headline}\n\n{lines}\n";
             _resultText.text = _resultHead + scoreLine;
 
-            SetProtectOffer(false); // 지난 판의 버튼이 남아 있지 않게
+            SetExtraOffer(false); // 지난 판의 버튼이 남아 있지 않게
             _resultOverlay.SetActive(true);
             AudioManager.PlayRoundEnd();
         }
@@ -552,15 +554,20 @@ namespace DiceBattle.UI
         }
 
         /// <summary>
-        /// "점수 보호권 사용" 버튼을 보이거나 감춘다.
+        /// 결과 화면의 부가 버튼을 보이거나 감춘다.
+        /// 패배면 "점수 보호권 사용", 승리면 "광고 보고 코인 2배"로 쓰인다.
         /// 감추면 가로 레이아웃이 남은 두 버튼을 다시 가운데로 모은다.
         ///
-        /// 가격은 버튼에 적지 않는다. 좁은 버튼에 문구와 숫자를 같이 넣으면 읽기 어렵다.
-        /// 얼마가 드는지는 누른 뒤 뜨는 확인 창에서 알려준다.
+        /// 가격·횟수 같은 숫자는 버튼에 적지 않는다. 좁은 버튼에 문구와 숫자를 같이 넣으면
+        /// 읽기 어렵다. 자세한 내용은 누른 뒤 뜨는 확인 창에서 알려준다.
         /// </summary>
-        public void SetProtectOffer(bool visible)
+        public void SetExtraOffer(bool visible, string label = null)
         {
             if (_protectButton == null) return;
+
+            if (visible && !string.IsNullOrEmpty(label) && _protectLabel != null)
+                _protectLabel.text = label;
+
             _protectButton.gameObject.SetActive(visible);
         }
 

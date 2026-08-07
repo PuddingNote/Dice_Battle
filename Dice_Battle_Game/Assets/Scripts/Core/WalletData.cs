@@ -45,8 +45,14 @@ namespace DiceBattle.Core
         /// <summary>코인으로 보호권을 쓴 마지막 날짜 번호.</summary>
         public int coinProtectDay = NeverClaimed;
 
-        /// <summary>광고로 보호권을 쓴 마지막 날짜 번호(3단계에서 사용).</summary>
+        /// <summary>광고로 보호권을 쓴 마지막 날짜 번호.</summary>
         public int adProtectDay = NeverClaimed;
+
+        /// <summary>승리 코인 2배 광고를 마지막으로 본 날짜 번호.</summary>
+        public int doubleRewardDay = NeverClaimed;
+
+        /// <summary>그 날 2배 광고를 본 횟수. 날짜가 바뀌면 0부터 다시 센다.</summary>
+        public int doubleRewardCount;
 
         public const int NeverClaimed = int.MinValue;
 
@@ -175,12 +181,38 @@ namespace DiceBattle.Core
             return true;
         }
 
-        /// <summary>광고로 보호권을 쓴다(3단계). 오늘 이미 썼으면 false.</summary>
+        /// <summary>광고로 보호권을 쓴다. 오늘 이미 썼으면 false.</summary>
         public bool TryUseAdProtection(int today)
         {
             if (!CanUseAdProtection(today)) return false;
 
             adProtectDay = today;
+            return true;
+        }
+
+        // ---- 승리 코인 2배 광고 ----
+
+        /// <summary>오늘 2배 광고를 이미 몇 번 봤는가. 날짜가 바뀌었으면 0.</summary>
+        public int DoubleRewardUsedToday(int today)
+            => doubleRewardDay == today ? doubleRewardCount : 0;
+
+        /// <summary>
+        /// 오늘 2배를 더 쓸 수 있는가.
+        ///
+        /// 횟수를 제한하는 이유는 광고 수익이 아니라 <b>코인 경제</b> 때문이다.
+        /// 무제한이면 수입이 보호권 하루치를 크게 넘겨 남는 코인이 쌓이기만 한다.
+        /// </summary>
+        public bool CanDoubleReward(int today)
+            => DoubleRewardUsedToday(today) < CoinRules.DailyDoubleRewardLimit;
+
+        /// <summary>2배 사용을 기록한다. 한도를 넘었으면 false.</summary>
+        public bool TryUseDoubleReward(int today)
+        {
+            if (!CanDoubleReward(today)) return false;
+
+            // 날짜가 바뀌었으면 세던 값을 버리고 새로 센다.
+            doubleRewardCount = DoubleRewardUsedToday(today) + 1;
+            doubleRewardDay = today;
             return true;
         }
 
@@ -194,6 +226,10 @@ namespace DiceBattle.Core
             int cycle = CoinRules.AttendanceCycleLength;
             if (attendanceIndex < 0) attendanceIndex = 0;
             if (attendanceIndex > cycle) attendanceIndex = cycle;
+
+            if (doubleRewardCount < 0) doubleRewardCount = 0;
+            if (doubleRewardCount > CoinRules.DailyDoubleRewardLimit)
+                doubleRewardCount = CoinRules.DailyDoubleRewardLimit;
 
             version = CurrentVersion;
         }

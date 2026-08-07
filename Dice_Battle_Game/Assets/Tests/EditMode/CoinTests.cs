@@ -333,6 +333,60 @@ namespace DiceBattle.Tests
             Assert.IsFalse(w.TryUseAdProtection(10));
         }
 
+        // ---- 승리 코인 2배 광고 ----
+
+        [Test]
+        public void Double_Reward_Is_Limited_Per_Day()
+        {
+            var w = new WalletData();
+            int day = Monday();
+
+            for (int i = 0; i < CoinRules.DailyDoubleRewardLimit; i++)
+                Assert.IsTrue(w.TryUseDoubleReward(day), $"{i + 1}번째");
+
+            Assert.IsFalse(w.CanDoubleReward(day), "한도를 넘으면 막힌다");
+            Assert.IsFalse(w.TryUseDoubleReward(day));
+        }
+
+        [Test]
+        public void Double_Reward_Count_Resets_The_Next_Day()
+        {
+            var w = new WalletData();
+            int day = Monday();
+
+            for (int i = 0; i < CoinRules.DailyDoubleRewardLimit; i++)
+                w.TryUseDoubleReward(day);
+
+            Assert.AreEqual(0, w.DoubleRewardUsedToday(day + 1), "날짜가 바뀌면 0부터");
+            Assert.IsTrue(w.CanDoubleReward(day + 1));
+        }
+
+        [Test]
+        public void Double_Reward_Is_Counted_Apart_From_Protection()
+        {
+            var w = new WalletData();
+            int day = Monday();
+            w.AddCoins(1000);
+
+            w.TryUseCoinProtection(day, 120);
+            w.TryUseAdProtection(day);
+
+            // 보호권을 둘 다 썼어도 2배는 그대로 남아 있어야 한다.
+            Assert.IsTrue(w.CanDoubleReward(day));
+            Assert.AreEqual(CoinRules.DailyDoubleRewardLimit, CoinRules.DailyDoubleRewardLimit
+                - w.DoubleRewardUsedToday(day));
+        }
+
+        [Test]
+        public void Doubling_Pays_The_Same_Amount_Again()
+        {
+            var table = Table();
+
+            // Lv.10 승리는 30코인이고, 2배면 30을 한 번 더 받아 60이 된다.
+            int granted = CoinRules.WinCoins(table[DifficultyTable.MaxLevel]);
+            Assert.AreEqual(granted, CoinRules.DoubleRewardBonus(granted));
+        }
+
         // ---- 손상 데이터 ----
 
         [Test]

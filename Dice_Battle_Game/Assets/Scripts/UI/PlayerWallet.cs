@@ -110,6 +110,39 @@ namespace DiceBattle.UI
             return used;
         }
 
+        /// <summary>광고로 쓰는 보호권이 오늘 남아 있는가. 코인 제한과는 별개로 센다.</summary>
+        public static bool CanUseAdProtection => Data.CanUseAdProtection(Today);
+
+        /// <summary>광고 시청이 끝난 뒤에 부른다. 점수 복구는 호출부가 한다.</summary>
+        public static bool TryUseAdProtection()
+        {
+            bool used = Data.TryUseAdProtection(Today);
+            if (used) Save();
+            return used;
+        }
+
+        // ---- 승리 코인 2배 ----
+
+        public static bool CanDoubleReward => Data.CanDoubleReward(Today);
+
+        /// <summary>오늘 남은 2배 횟수.</summary>
+        public static int DoubleRewardsLeft
+            => CoinRules.DailyDoubleRewardLimit - Data.DoubleRewardUsedToday(Today);
+
+        /// <summary>
+        /// 광고 시청이 끝난 뒤에 부른다. 이미 받은 액수만큼 한 번 더 지급하고
+        /// 그 추가분을 돌려준다. 한도를 넘었으면 0.
+        /// </summary>
+        public static int GrantDoubleReward(int alreadyGranted)
+        {
+            if (!Data.TryUseDoubleReward(Today)) return 0;
+
+            int bonus = CoinRules.DoubleRewardBonus(alreadyGranted);
+            Data.AddCoins(bonus);
+            Save();
+            return bonus;
+        }
+
         // ---- 저장 ----
 
         private static WalletData Load()
@@ -156,12 +189,14 @@ namespace DiceBattle.UI
             Save();
         }
 
-        /// <summary>에디터 전용: 오늘 쓴 보호권·출석 기록을 지워 다시 쓸 수 있게 한다.</summary>
+        /// <summary>에디터 전용: 오늘 쓴 보호권·출석·2배 기록을 지워 다시 쓸 수 있게 한다.</summary>
         public static void EditorClearDailyLimits()
         {
             Data.coinProtectDay = WalletData.NeverClaimed;
             Data.adProtectDay = WalletData.NeverClaimed;
             Data.lastAttendanceDay = WalletData.NeverClaimed;
+            Data.doubleRewardDay = WalletData.NeverClaimed;
+            Data.doubleRewardCount = 0;
             Save();
         }
 #endif

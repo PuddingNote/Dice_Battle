@@ -51,7 +51,12 @@ namespace DiceBattle.UI
 
         /// <summary>마지막 전면 광고 이후 끝난 판수.</summary>
         private int _matchesSinceAd;
-        private float _lastInterstitialTime = float.NegativeInfinity;
+
+        /// <summary>
+        /// 마지막으로 <b>전체 화면 광고</b>를 띄운 시각. 전면과 보상형을 함께 센다.
+        /// 보상형을 빼면 결과 화면에서 광고를 보고 나가는 순간 전면이 겹친다.
+        /// </summary>
+        private float _lastFullscreenAdTime = float.NegativeInfinity;
 
         private Action _onInterstitialDone;
         private Action _onRewardEarned;
@@ -134,7 +139,7 @@ namespace DiceBattle.UI
             }
 
             _matchesSinceAd = 0;
-            _lastInterstitialTime = Time.unscaledTime;
+            _lastFullscreenAdTime = Time.unscaledTime;
             _onInterstitialDone = onDone;
 
             AudioManager.PauseBgmForAd();
@@ -144,7 +149,7 @@ namespace DiceBattle.UI
         private bool ShouldShowInterstitial()
         {
             if (_matchesSinceAd < MatchesPerInterstitial) return false;
-            if (Time.unscaledTime - _lastInterstitialTime < MinIntervalSeconds) return false;
+            if (Time.unscaledTime - _lastFullscreenAdTime < MinIntervalSeconds) return false;
 
             if (_interstitial == null || !_interstitial.CanShowAd())
             {
@@ -252,6 +257,11 @@ namespace DiceBattle.UI
         {
             Time.timeScale = _timeScaleBeforeAd;
             AudioManager.ResumeBgmAfterAd();
+
+            // 보상형도 전면 광고와 같은 전체 화면 광고다. 방금 하나 봤다는 사실을
+            // 기록해 두지 않으면, 결과 화면에서 광고를 보고 "계속하기"를 누르는 순간
+            // 전면 광고가 연달아 떠서 광고를 두 번 연속 보게 된다.
+            _lastFullscreenAdTime = Time.unscaledTime;
 
             Action reward = _onRewardEarned;
             Action failed = _onRewardFailed;

@@ -27,6 +27,11 @@ namespace DiceBattle.UI
         /// <summary>이번 판에서 내가 제거한 상대 주사위 누적 개수(전적 집계용).</summary>
         private int _humanRemoved;
 
+        // 아래 셋은 일일 미션 집계용. 판이 시작될 때마다 0으로 돌아간다.
+        private int _humanRerolls;
+        private int _humanExtras;
+        private int _humanExtrasOnOpponent;
+
         // 리롤: 판당 1회. 사용하면 그 판이 끝날 때까지 다시 못 쓴다.
         private bool _rerollAvailable;
         // 광고를 보고 얻는 추가 리롤. 기본 리롤과 별도로 판당 1회.
@@ -86,12 +91,24 @@ namespace DiceBattle.UI
         /// </summary>
         public int HumanRemovedThisMatch => _humanRemoved;
 
+        /// <summary>이번 판에서 내가 리롤한 횟수(기본 + 광고).</summary>
+        public int HumanRerollsThisMatch => _humanRerolls;
+
+        /// <summary>이번 판에서 내가 배치한 특수(추가) 주사위 개수.</summary>
+        public int HumanExtrasThisMatch => _humanExtras;
+
+        /// <summary>그중 상대 필드에 놓은 개수.</summary>
+        public int HumanExtrasOnOpponentThisMatch => _humanExtrasOnOpponent;
+
         /// <summary>지정 난이도로 새 대전 시작(선공 랜덤).</summary>
         public void StartMatch(int level)
         {
             StopAllCoroutines();
             _level = level;
             _humanRemoved = 0;
+            _humanRerolls = 0;
+            _humanExtras = 0;
+            _humanExtrasOnOpponent = 0;
             _mode = InputMode.None;
             _rerollAvailable = true; // 판마다 1회 충전
             _adRerollAvailable = true; // 광고로 얻는 추가 리롤도 판당 1회
@@ -238,6 +255,9 @@ namespace DiceBattle.UI
 
         private void BeginReroll()
         {
+            // 기본 리롤과 광고 리롤이 모두 여기로 모인다. 미션 집계는 여기 한 곳이면 된다.
+            _humanRerolls++;
+
             LockInput(); // 선택 중에는 라인 배치도 불가
             StartCoroutine(RerollRoutine());
         }
@@ -373,6 +393,14 @@ namespace DiceBattle.UI
             CaptureShift(lineModel, insert, out var sv, out var ss, out var sp);
 
             _game.PlaceExtra(targetField, line);
+
+            if (actor == _human)
+            {
+                _humanExtras++;
+                // 자기 라인이 아니라 상대 라인에 놓았는가(견제 플레이).
+                if (targetField != actor) _humanExtrasOnOpponent++;
+            }
+
             AudioManager.PlayDicePlace();
             yield return StartCoroutine(_board.PlaceGroupedFxRoutine(
                 targetField, line, insert, value, special, side, sv, ss, sp));

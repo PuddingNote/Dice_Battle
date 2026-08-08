@@ -97,6 +97,7 @@ namespace DiceBattle.UI
         public const int MenuStartFontSize = 52;    // "게임 시작"
         public const int MenuManualFontSize = 52;   // "게임 설명서"
         public const int MenuStatsFontSize = 52;    // "전적"
+        public const int MenuMissionFontSize = 46;  // "일일 미션" — 글자가 많아 한 단계 작게
         // "전적"과 "게임 설명서"가 한 줄에 나란히 서고, 그 아래 "게임 시작"이 혼자 한 줄을 쓴다.
         // 윗줄(320 + 40 + 320 = 680)과 폭을 맞춰야 세 버튼이 한 덩어리로 보인다.
         public const float MenuStartButtonWidth = 680f;
@@ -178,6 +179,19 @@ namespace DiceBattle.UI
         // 0.18은 내장 UISprite를 뜬 스킨 스프라이트 기준으로 맞춘 값이다.
         // 스킨이 비어 코드 생성 스프라이트로 대체되면 곡률이 달라 보일 수 있다.
         public const float AttendanceCellRoundness = 0.18f;
+
+        // ---- 일일 미션 창 ----
+        public const float MissionWindowWidth = 1360f;
+        public const float MissionWindowHeight = 760f;
+        public const int MissionTitleFontSize = 58;
+        public const int MissionBodyFontSize = 38;
+        public const float MissionRowHeight = 120f;
+        public const int MissionRowSpacing = 16;
+        public const int MissionLabelFontSize = 42;
+        public const int MissionProgressFontSize = 32;
+        public const float MissionButtonWidth = 200f;
+        public const float MissionButtonHeight = 96f;
+        public const int MissionButtonFontSize = 40;
 
         // ---- 결과 화면 보호권 버튼 ----
         public const float ResultButtonWidth = 400f;

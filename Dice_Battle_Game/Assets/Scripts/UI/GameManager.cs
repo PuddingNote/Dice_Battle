@@ -30,6 +30,7 @@ namespace DiceBattle.UI
         private CreditsView _credits;
         private StatsView _stats;
         private AttendanceView _attendance;
+        private MissionView _missions;
 
         /// <summary>직전 판의 코인 지급액. 보호권을 쓴 뒤 결과 문구를 다시 쓸 때 필요하다.</summary>
         private int _lastCoinReward;
@@ -83,6 +84,7 @@ namespace DiceBattle.UI
             _menu.Build(canvasRoot);
             _menu.StartRequested += ShowDifficultySelect;
             _menu.StatsRequested += () => _stats.Open();
+            _menu.MissionsRequested += () => _missions.Open();
             _menu.ManualRequested += () => _manual.Open();
 
             var selectGo = new GameObject("DifficultySelectView");
@@ -107,6 +109,11 @@ namespace DiceBattle.UI
             // 출석은 메인 메뉴에 들어올 때 받을 것이 있으면 저절로 열린다.
             _attendance = new AttendanceView(canvasRoot);
             _attendance.Claimed += RefreshMenu;
+
+            // 미션은 저절로 열지 않는다. 하루에도 여러 번 달성되므로 그때마다 창이 뜨면
+            // 성가시다. 대신 메뉴 버튼에 표시를 띄워 받을 것이 있다는 것만 알린다.
+            _missions = new MissionView(canvasRoot);
+            _missions.Claimed += RefreshMenu;
 
             // 뒤로가기 다이얼로그는 항상 최상단에 오도록 마지막에 생성.
             _dialog = new ConfirmDialogView(canvasRoot);
@@ -142,10 +149,13 @@ namespace DiceBattle.UI
             _attendance.OpenIfAvailable();
         }
 
-        /// <summary>메뉴의 점수·코인 표시를 지금 값으로 다시 그린다.</summary>
+        /// <summary>메뉴의 점수·코인·미션 표시를 지금 값으로 다시 그린다.</summary>
         private void RefreshMenu()
-            => _menu.SetScore(PlayerProgress.Score, PlayerProgress.MaxUnlockedLevel,
+        {
+            _menu.SetScore(PlayerProgress.Score, PlayerProgress.MaxUnlockedLevel,
                 PlayerWallet.Coins);
+            _menu.SetMissionBadge(PlayerMissions.HasClaimable);
+        }
 
         /// <summary>메인 메뉴에서 들어온 경우. 고를 수 있는 가장 높은 난이도가 잡혀 있다.</summary>
         private void ShowDifficultySelect()
@@ -244,6 +254,11 @@ namespace DiceBattle.UI
                 _attendance.Close();
                 return;
             }
+            if (_missions.IsOpen)
+            {
+                _missions.Close();
+                return;
+            }
             if (_settings.IsOpen)
             {
                 _settings.Close();
@@ -296,6 +311,12 @@ namespace DiceBattle.UI
             // 전적도 같은 난이도 기준으로 누적한다. 점수 정산과 어긋나면 안 된다.
             PlayerStats.ApplyMatch(result, _controller.Level, _controller.HumanRemovedThisMatch);
 
+            // 미션 진행도. 난이도와 무관한 지표만 세므로 낮은 난이도로 내려갈 유인이 없다.
+            PlayerMissions.ReportMatch(
+                _controller.HumanRemovedThisMatch, HumanLineWins(outcome),
+                _controller.HumanRerollsThisMatch, _controller.HumanExtrasThisMatch,
+                _controller.HumanExtrasOnOpponentThisMatch);
+
             // 코인도 마찬가지로 그 판의 난이도로 계산한다.
             _lastCoinReward = PlayerWallet.GrantMatchReward(result, _controller.Level);
             _protectionUsedThisResult = false;
@@ -329,6 +350,10 @@ namespace DiceBattle.UI
                     break;
             }
         }
+
+        /// <summary>이번 판에서 내가 이긴 라인 수. 판을 져도 딴 라인은 있을 수 있다.</summary>
+        private static int HumanLineWins(MatchOutcome outcome)
+            => Human == PlayerId.One ? outcome.PlayerOneLineWins : outcome.PlayerTwoLineWins;
 
         /// <summary>코인이든 광고든 한 가지라도 보호가 가능한가.</summary>
         private bool CanProtect()

@@ -13,12 +13,21 @@ namespace DiceBattle.UI
     {
         private GameObject _root;
         private TMP_Text _scoreText;
+        private TMP_Text _missionLabel;
+
+        private const string MissionText = "일일 미션";
+
+        /// <summary>받을 보상이 있을 때 붙는 표시. 색은 코인과 같은 금색이다.</summary>
+        private const string MissionBadge = "  <color=#FFDB59>●</color>";
 
         /// <summary>난이도 선택 화면으로 이동.</summary>
         public event Action StartRequested;
 
         /// <summary>전적 창 열기.</summary>
         public event Action StatsRequested;
+
+        /// <summary>일일 미션 창 열기.</summary>
+        public event Action MissionsRequested;
 
         /// <summary>게임 설명서 열기.</summary>
         public event Action ManualRequested;
@@ -50,11 +59,16 @@ namespace DiceBattle.UI
                 UiTheme.MenuScoreFontSize, UiTheme.Label);
             UiFactory.SetPreferredHeight(_scoreText.gameObject, 90f);
 
-            CreateButtonPair(bg.transform,
+            _missionLabel = CreateButtonPair(bg.transform,
+                "MissionButton", MissionText, UiTheme.MenuMissionFontSize,
+                () => MissionsRequested?.Invoke(),
                 "StatsButton", "전적", UiTheme.MenuStatsFontSize,
-                () => StatsRequested?.Invoke(),
-                "ManualButton", "게임 설명서", UiTheme.MenuManualFontSize,
-                () => ManualRequested?.Invoke());
+                () => StatsRequested?.Invoke());
+
+            CreateCenteredButton(bg.transform, "ManualButton", "게임 설명서",
+                UiTheme.MenuPairButtonWidth * 2f + UiTheme.MenuPairGap,
+                UiTheme.MenuPairButtonHeight,
+                UiTheme.MenuManualFontSize, () => ManualRequested?.Invoke());
 
             // "게임 시작"이 맨 아래다. 가장 자주 누르는 버튼이라 엄지에서 제일 가깝다.
             CreateCenteredButton(bg.transform, "StartButton", "게임 시작",
@@ -77,8 +91,11 @@ namespace DiceBattle.UI
             AddButton(row, name, text, width, height, fontSize, onClick);
         }
 
-        /// <summary>버튼 두 개를 한 줄에 나란히 놓는다(가로 레이아웃이 가운데로 모아 준다).</summary>
-        private static void CreateButtonPair(Transform parent,
+        /// <summary>
+        /// 버튼 두 개를 한 줄에 나란히 놓는다(가로 레이아웃이 가운데로 모아 준다).
+        /// 왼쪽 버튼의 라벨을 돌려준다 — 미션 알림 표시를 붙이기 위해서다.
+        /// </summary>
+        private static TMP_Text CreateButtonPair(Transform parent,
             string leftName, string leftText, int leftFontSize, Action onLeft,
             string rightName, string rightText, int rightFontSize, Action onRight)
         {
@@ -87,13 +104,15 @@ namespace DiceBattle.UI
                 new RectOffset(0, 0, 0, 0));
             UiFactory.SetPreferredHeight(row.gameObject, UiTheme.MenuPairButtonHeight);
 
-            AddButton(row, leftName, leftText, UiTheme.MenuPairButtonWidth,
+            TMP_Text left = AddButton(row, leftName, leftText, UiTheme.MenuPairButtonWidth,
                 UiTheme.MenuPairButtonHeight, leftFontSize, onLeft);
             AddButton(row, rightName, rightText, UiTheme.MenuPairButtonWidth,
                 UiTheme.MenuPairButtonHeight, rightFontSize, onRight);
+
+            return left;
         }
 
-        private static void AddButton(RectTransform row, string name, string text,
+        private static TMP_Text AddButton(RectTransform row, string name, string text,
             float width, float height, int fontSize, Action onClick)
         {
             var button = UiFactory.CreateButton(name, row, UiTheme.Button);
@@ -103,6 +122,7 @@ namespace DiceBattle.UI
             UiFactory.Stretch(label.rectTransform);
 
             button.onClick.AddListener(() => onClick());
+            return label;
         }
 
         /// <param name="unlockedLevel">해금한 가장 높은 난이도.</param>
@@ -113,6 +133,13 @@ namespace DiceBattle.UI
 
             _scoreText.text = $"점수 {score}   ·   Lv.{unlockedLevel}   ·   " +
                               $"<color={UiTheme.CoinColorHex}>{coins:N0}</color> 코인";
+        }
+
+        /// <summary>받을 미션 보상이 있으면 버튼에 표시를 붙인다.</summary>
+        public void SetMissionBadge(bool hasClaimable)
+        {
+            if (_missionLabel == null) return;
+            _missionLabel.text = hasClaimable ? MissionText + MissionBadge : MissionText;
         }
 
         public void SetVisible(bool visible)

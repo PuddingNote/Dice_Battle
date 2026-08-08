@@ -63,6 +63,14 @@ namespace DiceBattle.UI
 
         // ---- 코인 ----
 
+        /// <summary>코인을 지급한다(미션 보상 등 판 결과와 무관한 획득처용).</summary>
+        public static void AddCoins(int amount)
+        {
+            if (amount <= 0) return;
+            Data.AddCoins(amount);
+            Save();
+        }
+
         /// <summary>한 판 결과로 코인을 지급하고 지급액을 돌려준다.</summary>
         public static int GrantMatchReward(PlayerMatchResult result, int playedLevel)
         {

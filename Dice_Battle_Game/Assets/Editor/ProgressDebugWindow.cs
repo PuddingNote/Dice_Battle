@@ -173,6 +173,31 @@ namespace DiceBattle.EditorTools
             EditorGUILayout.LabelField("코인 2배(오늘)",
                 $"{w.DoubleRewardUsedToday(today)} / {CoinRules.DailyDoubleRewardLimit}");
 
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("일일 미션", EditorStyles.boldLabel);
+            for (int slot = 0; slot < MissionRules.DailyCount; slot++)
+            {
+                string state = PlayerMissions.IsClaimed(slot) ? "받음"
+                    : PlayerMissions.CanClaim(slot) ? "수령 가능" : "진행 중";
+                EditorGUILayout.LabelField(PlayerMissions.MissionAt(slot).Kind.ToString(),
+                    $"{PlayerMissions.Progress(slot)} / {PlayerMissions.Target(slot)}" +
+                    $"   ({PlayerMissions.Reward(slot)}코인, {state})");
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("미션 전부 달성"))
+                {
+                    PlayerMissions.EditorCompleteAll();
+                    Repaint();
+                }
+                if (GUILayout.Button("미션 초기화"))
+                {
+                    PlayerMissions.Reset();
+                    Repaint();
+                }
+            }
+
             DrawDateTravel();
 
             _coinInput = EditorGUILayout.IntField("코인 지정", _coinInput);

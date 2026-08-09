@@ -133,14 +133,18 @@ namespace DiceBattle.UI
 
         // ---- 설정 창 ----
         public const float SettingsWindowWidth = 1180f;
-        public const float SettingsWindowHeight = 700f;
+        // 아래 버튼이 네 개(2x2)로 늘어 한 줄 분량이 더 필요하다.
+        // 여백 80 + 제목 90 + 소리 두 줄 200 + 간격 150 + 버튼 두 줄 220 = 740. 남는 80이 여유.
+        public const float SettingsWindowHeight = 820f;
         public const int SettingsTitleFontSize = 60;
         public const int SettingsLabelFontSize = 44;
         public const float SliderTrackHeight = 34f;
         public const float SliderHandleSize = 58f;
-        // 아래 줄 [게임 설명서] [크레딧] [닫기] 공통 폭.
-        // 3칸 + 간격 2칸(30)이 창 안쪽 폭(창 너비 - 좌우 여백 60씩)에 들어가야 한다.
-        public const float SettingsFooterButtonWidth = 330f;
+        // 아래 버튼 공통 폭. 한 줄에 둘씩 들어간다.
+        // 2칸 + 간격 1칸(30)이 창 안쪽 폭(1180 - 좌우 여백 60씩 = 1060)에 들어가야 한다.
+        public const float SettingsFooterButtonWidth = 505f;
+        public const float SettingsFooterButtonHeight = 110f;
+        public const int SettingsFooterGap = 30;
 
         // ---- 게임 설명서 창 ----
         public const float ManualWindowWidth = 1480f;
@@ -211,6 +215,44 @@ namespace DiceBattle.UI
         public const int StatsValueFontSize = 44;
         public const float StatsRowHeight = 76f;
         public const int StatsRowSpacing = 14;
+
+        // ---- 튜토리얼 ----
+        //
+        // 안내 패널의 세로 위치. 보드가 화면을 꽉 채우므로 어디에 두든 무언가를 가리게 된다.
+        // 그래서 "가리지 않을 곳"이 아니라 "지금 설명하는 대상을 피할 곳"을 고른다.
+        // 세 값은 각각 첫째 줄 / 가운데 줄 / 셋째 줄 높이이며, 어느 쪽도 트레이를 덮지 않는다
+        // (트레이는 y ≈ -294 아래). 줄 높이는 세로 레이아웃에서 계산된 값이라
+        // TrayHeight나 TopBar 높이를 바꾸면 여기도 같이 옮겨야 한다.
+        public const float TutorialPanelTopY = 310f;
+        public const float TutorialPanelCenterY = 70f;
+        public const float TutorialPanelBottomY = -190f;
+        public const float TutorialPanelWidth = 1180f;
+        public const float TutorialPanelHeight = 200f;
+        public const int TutorialTextFontSize = 42;
+        public const int TutorialHintFontSize = 28;
+        public static readonly Color TutorialPanel = new Color(0.08f, 0.09f, 0.12f, 0.94f);
+        public static readonly Color TutorialPanelEdge = new Color(0.62f, 0.42f, 0.18f, 1f);
+
+        // 눌러야 할 곳을 감싸는 테두리. 채우지 않고 네 변만 그린다 —
+        // 반투명한 판을 덮으면 정작 봐야 할 주사위 눈이 흐려진다.
+        public static readonly Color TutorialRing = new Color(1f, 0.86f, 0.35f, 1f);
+        public const float TutorialRingThickness = 8f;
+        public const float TutorialRingPadding = 10f;   // 대상 바깥으로 얼마나 벌릴지
+        public const float TutorialRingPulseSeconds = 0.9f;
+        public const float TutorialRingMinAlpha = 0.30f;
+
+        public const float TutorialSkipButtonWidth = 230f;
+        public const float TutorialSkipButtonHeight = 92f;
+        public const int TutorialSkipFontSize = 36;
+        public static readonly Color TutorialSkipButton = new Color(0.24f, 0.25f, 0.30f, 1f);
+
+        // ---- 튜토리얼 완료 화면 ----
+        public const float TutorialDoneWindowWidth = 1200f;
+        public const float TutorialDoneWindowHeight = 660f;
+        public const int TutorialDoneTitleFontSize = 68;
+        public const int TutorialDoneBodyFontSize = 42;
+        public const float TutorialDoneButtonWidth = 480f;
+        public const float TutorialDoneButtonHeight = 130f;
 
         // ---- 크레딧 창 ----
         public const float CreditsWindowWidth = 1300f;

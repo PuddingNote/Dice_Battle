@@ -19,6 +19,9 @@ namespace DiceBattle.UI
         /// <summary>읽기 전용으로 쓸 것. 값을 바꾸려면 <see cref="ApplyMatch"/>를 쓴다.</summary>
         public static StatsData Data => _data ??= Load();
 
+        /// <summary>전적이 저장된 적이 있는가(튜토리얼 재노출 방지용).</summary>
+        public static bool HasRecord => PlayerPrefs.HasKey(StatsKey);
+
         /// <summary>한 판 결과를 누적하고 저장한다.</summary>
         /// <param name="playedLevel">그 판을 시작할 때 고정된 난이도.</param>
         /// <param name="removedDice">그 판에서 내가 제거한 주사위 개수.</param>

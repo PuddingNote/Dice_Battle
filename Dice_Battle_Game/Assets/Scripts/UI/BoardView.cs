@@ -229,6 +229,23 @@ namespace DiceBattle.UI
         /// <summary>상단 중앙 표시 갱신: 플레이어 점수와 이번 판의 AI 난이도.</summary>
         public void SetHeader(int score, int level) => _headerText.text = $"{score} (Lv.{level})";
 
+        /// <summary>상단 중앙에 임의 문구를 표시한다(튜토리얼에서 점수 대신 쓴다).</summary>
+        public void SetHeaderText(string text) => _headerText.text = text;
+
+        /// <summary>지정한 줄의 배경 사각형. 튜토리얼이 강조를 씌울 자리를 잡는 데 쓴다.</summary>
+        public RectTransform LineRect(PlayerId field, int line)
+        {
+            if (line < 0 || line >= _rows.Length) return null;
+            var bg = _rows[line].Background(field);
+            return bg != null ? bg.rectTransform : null;
+        }
+
+        /// <summary>리롤 버튼의 사각형(튜토리얼 강조용).</summary>
+        public RectTransform RerollRect => _reroll != null ? _reroll.Rect : null;
+
+        /// <summary>트레이 주사위의 사각형(0=기존, 1=리롤 후보). 튜토리얼 강조용.</summary>
+        public RectTransform TrayRect(int index) => _tray.RectAt(index);
+
         // ---- 하이라이트 ----
 
         public void ClearHighlights()
@@ -237,30 +254,39 @@ namespace DiceBattle.UI
                 _rows[i].ClearHighlights();
         }
 
-        public void HighlightPrimary(GameState state)
+        /// <param name="gate">
+        /// 튜토리얼이 특정 줄만 열어 둘 때의 필터. null이면 규칙이 허락하는 곳 전부.
+        /// 클릭 차단만으로는 부족하다 — 눌러도 아무 일이 없는 줄이 밝게 빛나면 고장으로 보인다.
+        /// </param>
+        public void HighlightPrimary(GameState state, Func<PlayerId, int, bool> gate = null)
         {
             ClearHighlights();
             int v = state.PendingDice != null ? state.PendingDice.Value : 0;
             for (int i = 0; i < _rows.Length; i++)
             {
                 bool mySpace = state.Field(_humanId)[i].HasSpace;
-                if (mySpace) _rows[i].SetSelectable(_humanId, true);
+                if (mySpace && Allowed(gate, _humanId, i)) _rows[i].SetSelectable(_humanId, true);
 
                 // 제거 가능(내 라인 공간 + 상대 같은 라인에 제거 가능한 동일 값)하면 상대 라인도 강조.
-                if (mySpace && state.Field(_aiId)[i].HasRemovableValue(v))
+                if (mySpace && state.Field(_aiId)[i].HasRemovableValue(v) && Allowed(gate, _aiId, i))
                     _rows[i].SetSelectable(_aiId, true);
             }
         }
 
-        public void HighlightExtra(GameState state)
+        public void HighlightExtra(GameState state, Func<PlayerId, int, bool> gate = null)
         {
             ClearHighlights();
             for (int i = 0; i < _rows.Length; i++)
             {
-                if (state.Field(_humanId)[i].HasSpace) _rows[i].SetSelectable(_humanId, true);
-                if (state.Field(_aiId)[i].HasSpace) _rows[i].SetSelectable(_aiId, true);
+                if (state.Field(_humanId)[i].HasSpace && Allowed(gate, _humanId, i))
+                    _rows[i].SetSelectable(_humanId, true);
+                if (state.Field(_aiId)[i].HasSpace && Allowed(gate, _aiId, i))
+                    _rows[i].SetSelectable(_aiId, true);
             }
         }
+
+        private static bool Allowed(Func<PlayerId, int, bool> gate, PlayerId field, int line)
+            => gate == null || gate(field, line);
 
         // ---- 연출(트레이 → 라인 이동) ----
 

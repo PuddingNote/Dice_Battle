@@ -12,7 +12,8 @@ namespace DiceBattle.UI
     /// </summary>
     public sealed class GameController : MonoBehaviour
     {
-        private enum InputMode { None, Primary, Extra, RerollPick }
+        /// <summary>지금 사람이 무엇을 눌러야 하는 상태인가. 튜토리얼이 이 값으로 안내를 고른다.</summary>
+        public enum InputMode { None, Primary, Extra, RerollPick }
 
         private BoardView _board;
         private DifficultyConfig _difficulty;
@@ -68,6 +69,40 @@ namespace DiceBattle.UI
         /// <summary>한 판 종료 시 결과를 전달(점수·해금 갱신용).</summary>
         public event Action<MatchOutcome> MatchFinished;
 
+        // ---- 튜토리얼 훅 ----
+        //
+        // 아래 다섯은 전부 null이 기본이고, null이면 이 파일은 평소와 똑같이 동작한다.
+        // 튜토리얼 각본을 진행 로직 안에 섞어 넣지 않으려고 밖에서 끼워 넣는 구조로 뒀다.
+
+        /// <summary>
+        /// 진행 중 정해진 지점에서 실행되고, 끝날 때까지 판이 멈춘다(안내 문구 표시용).
+        /// null이면 아무 데서도 멈추지 않는다.
+        /// </summary>
+        public Func<TutorialBeat, IEnumerator> Interlude { get; set; }
+
+        /// <summary>지금 누를 수 있는 줄만 통과시킨다. null이면 규칙이 허락하는 곳 전부.</summary>
+        public Func<PlayerId, int, bool> LineGate { get; set; }
+
+        /// <summary>리롤 버튼을 눌러도 되는가. null이면 평소 조건대로.</summary>
+        public Func<bool> RerollGate { get; set; }
+
+        /// <summary>리롤 선택에서 고를 수 있는 쪽만 통과시킨다(0=기존, 1=새로 굴린 것).</summary>
+        public Func<int, bool> TrayGate { get; set; }
+
+        /// <summary>
+        /// 상단 표시를 점수 대신 이 문구로 고정한다. null이면 점수를 표시한다.
+        /// </summary>
+        public string HeaderOverride { get; set; }
+
+        /// <summary>
+        /// 광고를 일절 띄우지 않는다. 첫 실행 튜토리얼에 광고가 끼면 그 자체로 이탈 사유이고,
+        /// 각본이 광고 화면에 끊기면 어디까지 진행됐는지도 흐려진다.
+        /// </summary>
+        public bool SuppressAds { get; set; }
+
+        /// <summary>지금 사람이 무엇을 눌러야 하는 상태인가.</summary>
+        public InputMode Mode => _mode;
+
         public void Init(BoardView board, DifficultyConfig difficulty)
         {
             _board = board;
@@ -76,10 +111,17 @@ namespace DiceBattle.UI
             // 결과 화면을 벗어나는 순간이 전면 광고를 띄우기에 자연스러운 지점이다.
             // 이 두 버튼은 결과 오버레이 안에만 있으므로 판당 정확히 한 번 지나간다.
             // 판이 진행되는 도중에는 절대 띄우지 않는다 — 정책 위반이자 최악의 경험이다.
-            _board.ContinueClicked += () => AdManager.ShowInterstitial(() => ContinueRequested?.Invoke());
-            _board.MenuClicked += () => AdManager.ShowInterstitial(() => MenuRequested?.Invoke());
+            _board.ContinueClicked += () => LeaveResult(() => ContinueRequested?.Invoke());
+            _board.MenuClicked += () => LeaveResult(() => MenuRequested?.Invoke());
             _board.RerollClicked += OnRerollClicked;
             _board.TrayDiceClicked += OnTrayDiceClicked;
+        }
+
+        /// <summary>결과 화면을 벗어난다. 광고를 막아 둔 판(튜토리얼)에서는 그냥 넘어간다.</summary>
+        private void LeaveResult(Action next)
+        {
+            if (SuppressAds) next?.Invoke();
+            else AdManager.ShowInterstitial(next);
         }
 
         /// <summary>이번 판의 난이도(시작 시점에 고정).</summary>
@@ -101,7 +143,14 @@ namespace DiceBattle.UI
         public int HumanExtrasOnOpponentThisMatch => _humanExtrasOnOpponent;
 
         /// <summary>지정 난이도로 새 대전 시작(선공 랜덤).</summary>
-        public void StartMatch(int level)
+        public void StartMatch(int level) => StartMatch(level, null, null, null);
+
+        /// <summary>
+        /// 주사위와 AI를 직접 지정해 대전을 시작한다(튜토리얼 각본용).
+        /// null을 넘긴 자리는 평소대로 난이도 설정에서 만든다.
+        /// </summary>
+        /// <param name="firstPlayer">선공. null이면 매 판 랜덤.</param>
+        public void StartMatch(int level, IDiceRoller roller, IAiStrategy ai, PlayerId? firstPlayer)
         {
             StopAllCoroutines();
             _level = level;
@@ -119,25 +168,52 @@ namespace DiceBattle.UI
             _board.SetRerollInteractable(false);
 
             // AI(P2)만 난이도 가중 주사위, 사람은 공정. 설정 에셋이 있으면 그 값을 사용.
-            _game = new DiceGame(_difficulty != null
-                ? _difficulty.CreateRoller(Ai, level)
-                : new DifficultyDiceRoller(Ai, level));
-            _ai = _difficulty != null
-                ? _difficulty.CreateAi(level)
-                : new LeveledAiStrategy(level);
+            _game = new DiceGame(roller ?? DefaultRoller(level));
+            _ai = ai ?? DefaultAi(level);
 
-            _board.SetHeader(PlayerProgress.Score, level);
+            if (HeaderOverride != null) _board.SetHeaderText(HeaderOverride);
+            else _board.SetHeader(PlayerProgress.Score, level);
 
             // 선공 랜덤 → 선공의 첫 주사위는 특수(기획서 9번).
-            PlayerId first = _rng.Next(2) == 0 ? PlayerId.One : PlayerId.Two;
+            PlayerId first = firstPlayer
+                ?? (_rng.Next(2) == 0 ? PlayerId.One : PlayerId.Two);
             _game.Start(first);
             _board.Render(_game.State);
             _board.RefreshTray(_game.State);
+            StartCoroutine(OpeningRoutine());
+        }
+
+        /// <summary>난이도 설정 에셋이 있으면 그 값으로, 없으면 코드 기본값으로 롤러를 만든다.</summary>
+        public IDiceRoller DefaultRoller(int level)
+            => _difficulty != null ? _difficulty.CreateRoller(Ai, level) : new DifficultyDiceRoller(Ai, level);
+
+        /// <summary>같은 규칙으로 AI를 만든다. 튜토리얼 각본이 끝난 뒤 이어받을 폴백이기도 하다.</summary>
+        public IAiStrategy DefaultAi(int level)
+            => _difficulty != null ? _difficulty.CreateAi(level) : new LeveledAiStrategy(level);
+
+        /// <summary>첫 턴 전에 한 번 멈출 자리(튜토리얼 도입 안내).</summary>
+        private IEnumerator OpeningRoutine()
+        {
+            yield return RunInterlude(TutorialBeat.MatchStart);
             BeginTurn();
+        }
+
+        /// <summary>각본이 끼어들 자리. 훅이 없으면 한 프레임도 쉬지 않는다.</summary>
+        private IEnumerator RunInterlude(TutorialBeat beat)
+        {
+            var hook = Interlude;
+            if (hook == null) yield break;
+            yield return StartCoroutine(hook(beat));
         }
 
         /// <summary>아직 승부가 나지 않은 판이 진행 중인지.</summary>
         public bool IsMatchActive => _game != null && !_game.State.IsGameOver;
+
+        /// <summary>
+        /// 지금 이 순간의 판세를 판정 규칙 그대로 계산한다(빈 자리는 0점으로 친다).
+        /// 튜토리얼을 도중에 마칠 때 "이기고 있었는지"를 정직하게 적기 위한 것이다.
+        /// </summary>
+        public MatchOutcome CurrentStanding => MatchEvaluator.Evaluate(_game.State);
 
         /// <summary>
         /// 진행 중인 판을 즉시 중단한다(뒤로가기로 메뉴 복귀 등).
@@ -196,6 +272,9 @@ namespace DiceBattle.UI
         {
             LockInput();
             yield return _board.WaitForTrayIdle();
+            // 안내를 먼저 띄운다. 어느 줄을 열어 줄지가 안내 단계에 달려 있어
+            // 순서를 바꾸면 지난 단계의 조건으로 강조하게 된다.
+            yield return RunInterlude(TutorialBeat.HumanInputReady);
             SetHumanInput();
         }
 
@@ -205,28 +284,30 @@ namespace DiceBattle.UI
             if (s.Phase == TurnPhase.AwaitingPrimaryPlacement)
             {
                 _mode = InputMode.Primary;
-                _board.HighlightPrimary(s);
+                _board.HighlightPrimary(s, LineGate);
             }
             else if (s.Phase == TurnPhase.AwaitingExtraPlacement)
             {
                 _mode = InputMode.Extra;
-                _board.HighlightExtra(s);
+                _board.HighlightExtra(s, LineGate);
             }
 
             // 리롤은 "내가 주사위를 배치해야 하는 타이밍"에만 누를 수 있다.
             // 기본 리롤을 소진해도 광고 리롤이 남아 있으면 계속 눌린다.
             _board.SetRerollInteractable(
-                (_rerollAvailable || CanOfferAdReroll) && _mode != InputMode.None);
+                (_rerollAvailable || CanOfferAdReroll) && _mode != InputMode.None
+                && (RerollGate == null || RerollGate()));
         }
 
         // ---- 리롤 ----
 
         /// <summary>광고 리롤을 제안할 수 있는 상태인가. 광고가 안 실려 있으면 제안하지 않는다.</summary>
-        private bool CanOfferAdReroll => _adRerollAvailable && AdManager.IsRewardedReady;
+        private bool CanOfferAdReroll => _adRerollAvailable && !SuppressAds && AdManager.IsRewardedReady;
 
         private void OnRerollClicked()
         {
             if (_mode != InputMode.Primary && _mode != InputMode.Extra) return;
+            if (RerollGate != null && !RerollGate()) return;
 
             if (_rerollAvailable)
             {
@@ -268,12 +349,16 @@ namespace DiceBattle.UI
 
             yield return StartCoroutine(_board.RollCandidateRoutine(_rerollCandidate));
 
+            // 두 주사위가 다 놓인 뒤에 안내를 띄운다. 무엇을 고르라는 말이니
+            // 고를 것이 보이기 전에 띄우면 뜻이 통하지 않는다.
+            yield return RunInterlude(TutorialBeat.HumanInputReady);
             _mode = InputMode.RerollPick;
         }
 
         private void OnTrayDiceClicked(int index)
         {
             if (_mode != InputMode.RerollPick) return;
+            if (TrayGate != null && !TrayGate(index)) return;
             _mode = InputMode.None;
             StartCoroutine(ResolveRerollPick(index));
         }
@@ -287,12 +372,14 @@ namespace DiceBattle.UI
             yield return StartCoroutine(_board.ResolvePickRoutine(index));
 
             // 원래 배치 단계로 복귀(리롤 버튼은 소진되어 비활성).
+            yield return RunInterlude(TutorialBeat.HumanInputReady);
             SetHumanInput();
         }
 
         private void OnLineClicked(PlayerId field, int line)
         {
             var s = _game.State;
+            if (LineGate != null && !LineGate(field, line)) return;
 
             if (_mode == InputMode.Primary)
             {
@@ -316,12 +403,14 @@ namespace DiceBattle.UI
         private IEnumerator HumanPrimary(int line)
         {
             yield return StartCoroutine(DoPrimary(_human, line));
+            yield return RunInterlude(TutorialBeat.HumanActed);
             BeginTurn();
         }
 
         private IEnumerator HumanExtra(PlayerId field, int line)
         {
             yield return StartCoroutine(DoExtra(_human, field, line));
+            yield return RunInterlude(TutorialBeat.HumanActed);
             BeginTurn();
         }
 
@@ -453,6 +542,7 @@ namespace DiceBattle.UI
                 }
 
                 yield return new WaitForSeconds(AiActDelay);
+                yield return RunInterlude(TutorialBeat.AiActed);
             }
 
             BeginTurn();

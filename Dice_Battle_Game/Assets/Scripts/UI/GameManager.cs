@@ -31,6 +31,10 @@ namespace DiceBattle.UI
         private StatsView _stats;
         private AttendanceView _attendance;
         private MissionView _missions;
+        private TutorialController _tutorial;
+
+        /// <summary>우측 상단 설정 버튼. 튜토리얼 중에는 숨긴다.</summary>
+        private GameObject _settingsButton;
 
         /// <summary>직전 판의 코인 지급액. 보호권을 쓴 뒤 결과 문구를 다시 쓸 때 필요하다.</summary>
         private int _lastCoinReward;
@@ -82,7 +86,7 @@ namespace DiceBattle.UI
             menuGo.transform.SetParent(transform, false);
             _menu = menuGo.AddComponent<MenuView>();
             _menu.Build(canvasRoot);
-            _menu.StartRequested += ShowDifficultySelect;
+            _menu.StartRequested += OnStartRequested;
             _menu.StatsRequested += () => _stats.Open();
             _menu.MissionsRequested += () => _missions.Open();
             _menu.ManualRequested += () => _manual.Open();
@@ -102,6 +106,7 @@ namespace DiceBattle.UI
             _settings.ManualRequested += () => _manual.Open();
             _credits = new CreditsView(canvasRoot);
             _settings.CreditsRequested += () => _credits.Open();
+            _settings.TutorialRequested += ReplayTutorial;
 
             // 전적은 메인 메뉴에서만 열리므로 설정 창과 겹칠 일이 없다.
             _stats = new StatsView(canvasRoot);
@@ -117,6 +122,14 @@ namespace DiceBattle.UI
 
             // 뒤로가기 다이얼로그는 항상 최상단에 오도록 마지막에 생성.
             _dialog = new ConfirmDialogView(canvasRoot);
+
+            // 튜토리얼은 확인 창을 빌려 쓰므로 그 뒤에 만든다.
+            // 다이얼로그도 완료 화면도 열릴 때 스스로 맨 위로 올라오므로 순서가 뒤집히지 않는다.
+            var tutorialGo = new GameObject("TutorialController");
+            tutorialGo.transform.SetParent(transform, false);
+            _tutorial = tutorialGo.AddComponent<TutorialController>();
+            _tutorial.Init(canvasRoot, _controller, _board, _dialog);
+            _tutorial.Finished += OnTutorialFinished;
 
             ShowMenu();
         }
@@ -134,6 +147,13 @@ namespace DiceBattle.UI
             rt.anchoredPosition = new Vector2(-UiTheme.IconButtonMarginX, -UiTheme.IconButtonMarginY);
 
             button.Button.onClick.AddListener(() => _settings.Open());
+            _settingsButton = button.Button.gameObject;
+        }
+
+        /// <summary>튜토리얼 중에는 설정으로 빠져나갈 길을 닫는다(건너뛰기 버튼이 그 자리에 온다).</summary>
+        private void SetSettingsButtonVisible(bool visible)
+        {
+            if (_settingsButton != null) _settingsButton.SetActive(visible);
         }
 
         private void ShowMenu()
@@ -155,6 +175,46 @@ namespace DiceBattle.UI
             _menu.SetScore(PlayerProgress.Score, PlayerProgress.MaxUnlockedLevel,
                 PlayerWallet.Coins);
             _menu.SetMissionBadge(PlayerMissions.HasClaimable);
+        }
+
+        // ---- 튜토리얼 ----
+
+        /// <summary>
+        /// 메인 메뉴의 "게임 시작". 처음이면 난이도 선택을 건너뛰고 튜토리얼로 보낸다.
+        /// 규칙을 모르는 사람에게 난이도 열 개를 먼저 보여 줄 이유가 없다.
+        /// </summary>
+        private void OnStartRequested()
+        {
+            if (TutorialState.ShouldPlay) StartTutorial();
+            else ShowDifficultySelect();
+        }
+
+        private void StartTutorial()
+        {
+            _screen = ScreenId.Game;
+            _menu.SetVisible(false);
+            _select.SetVisible(false);
+            _board.SetVisible(true);
+            SetSettingsButtonVisible(false);
+            _tutorial.Begin();
+        }
+
+        /// <summary>설정 창의 "튜토리얼 다시 보기". 창을 닫고 바로 시작한다.</summary>
+        private void ReplayTutorial()
+        {
+            _settings.Close();
+            _controller.AbortMatch();
+            StartTutorial();
+        }
+
+        /// <summary>
+        /// 끝까지 봤든 건너뛰었든 난이도 선택으로 보낸다.
+        /// 배운 것을 바로 써 볼 수 있는 자리가 여기다.
+        /// </summary>
+        private void OnTutorialFinished()
+        {
+            SetSettingsButtonVisible(true);
+            ShowDifficultySelect();
         }
 
         /// <summary>메인 메뉴에서 들어온 경우. 고를 수 있는 가장 높은 난이도가 잡혀 있다.</summary>
@@ -234,6 +294,15 @@ namespace DiceBattle.UI
                 _dialog.Close();
                 return;
             }
+            // 튜토리얼 중에는 뒤로가기가 곧 건너뛰기다(같은 확인 창).
+            // 완료 화면까지 왔다면 이미 끝난 것이므로 확인 없이 다음으로 보낸다.
+            if (_tutorial.IsRunning)
+            {
+                if (_tutorial.IsShowingResult) _tutorial.Quit();
+                else _tutorial.AskSkip();
+                return;
+            }
+
             if (_manual.IsOpen)
             {
                 _manual.Close();
@@ -301,6 +370,16 @@ namespace DiceBattle.UI
 
         private void OnMatchFinished(MatchOutcome outcome)
         {
+            // 튜토리얼 판은 각본이라 실력의 결과가 아니다. 점수·전적·미션 어디에도 넣지 않고
+            // 완주 코인만 준다. 여기서 걸러 내지 않으면 전적 첫 줄이 가짜 1승으로 시작한다.
+            // 설정 버튼은 여기서 되살리지 않는다. 완료 화면 위로 떠 버린다.
+            // 튜토리얼이 완전히 끝나는 OnTutorialFinished가 한 곳에서 되돌린다.
+            if (_tutorial.IsRunning)
+            {
+                _tutorial.OnMatchFinished(outcome);
+                return;
+            }
+
             PlayerMatchResult result = RankSystem.ResultFor(outcome, Human);
 
             // 정산은 반드시 "그 판을 시작한 난이도"로 한다. 지금 해금된 난이도로 하면

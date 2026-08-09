@@ -103,6 +103,9 @@ namespace DiceBattle.UI
 
         private RectTransform RectOf(int i) => _dice[i].Rect;
 
+        /// <summary>슬롯의 사각형(0=기존, 1=리롤 후보). 튜토리얼이 강조를 씌울 자리를 잡는 데 쓴다.</summary>
+        public RectTransform RectAt(int index) => RectOf(index < 0 || index >= PairCount ? 0 : index);
+
         /// <summary>
         /// 클릭한 주사위의 슬롯 번호를 <b>클릭 시점에</b> 다시 찾는다.
         /// <see cref="ResolvePickRoutine"/>이 선택 후 두 슬롯을 맞바꾸므로,

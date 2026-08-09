@@ -32,6 +32,11 @@ namespace DiceBattle.UI
         /// <summary>설정 창 안의 "크레딧" 버튼을 눌렀을 때.</summary>
         public event Action CreditsRequested;
 
+        /// <summary>
+        /// "튜토리얼 다시 보기". 건너뛴 사람이 되돌아올 유일한 길이라 눈에 띄는 곳에 둔다.
+        /// </summary>
+        public event Action TutorialRequested;
+
         public SettingsPanelView(RectTransform parent)
         {
             var backdrop = UiFactory.CreateStretchPanel("SettingsPanel", parent, UiTheme.Backdrop);
@@ -60,28 +65,43 @@ namespace DiceBattle.UI
             var spacer = UiFactory.CreateRect("Spacer", window);
             UiFactory.SetFlexibleHeight(spacer.gameObject, 1f);
 
-            // 아래 줄: [게임 설명서] [크레딧] [닫기]
-            var buttonRow = UiFactory.CreateRect("ButtonRow", window);
-            UiFactory.AddHorizontalLayout(buttonRow.gameObject, 30, new RectOffset(0, 0, 0, 0));
-            UiFactory.SetPreferredHeight(buttonRow.gameObject, 120f);
+            // 아래 두 줄: [게임 설명서] [튜토리얼 다시 보기] / [크레딧] [닫기]
+            // 넷을 한 줄에 넣으면 버튼 폭이 242밖에 안 나와 "게임 설명서"가 잘린다.
+            var topRow = BuildFooterRow(window, "ButtonRowTop");
 
-            var manualButton = BuildFooterButton(buttonRow, "ManualButton", "게임 설명서", UiTheme.CenterPanel);
+            var manualButton = BuildFooterButton(topRow, "ManualButton", "게임 설명서", UiTheme.CenterPanel);
             manualButton.onClick.AddListener(() => ManualRequested?.Invoke());
 
-            var creditsButton = BuildFooterButton(buttonRow, "CreditsButton", "크레딧", UiTheme.CenterPanel);
+            var tutorialButton = BuildFooterButton(topRow, "TutorialButton", "튜토리얼 다시 보기",
+                UiTheme.CenterPanel);
+            tutorialButton.onClick.AddListener(() => TutorialRequested?.Invoke());
+
+            var bottomRow = BuildFooterRow(window, "ButtonRowBottom");
+
+            var creditsButton = BuildFooterButton(bottomRow, "CreditsButton", "크레딧", UiTheme.CenterPanel);
             creditsButton.onClick.AddListener(() => CreditsRequested?.Invoke());
 
-            var closeButton = BuildFooterButton(buttonRow, "CloseButton", "닫기", UiTheme.Button);
+            var closeButton = BuildFooterButton(bottomRow, "CloseButton", "닫기", UiTheme.Button);
             closeButton.onClick.AddListener(Close);
 
             _root.SetActive(false);
         }
 
-        /// <summary>창 아래쪽 가로 줄에 들어가는 글자 버튼. 세 개가 같은 폭을 쓴다.</summary>
+        private static RectTransform BuildFooterRow(RectTransform window, string name)
+        {
+            var row = UiFactory.CreateRect(name, window);
+            UiFactory.AddHorizontalLayout(row.gameObject, UiTheme.SettingsFooterGap,
+                new RectOffset(0, 0, 0, 0));
+            UiFactory.SetPreferredHeight(row.gameObject, UiTheme.SettingsFooterButtonHeight);
+            return row;
+        }
+
+        /// <summary>창 아래쪽 가로 줄에 들어가는 글자 버튼. 넷이 같은 폭을 쓴다.</summary>
         private static Button BuildFooterButton(RectTransform row, string name, string text, Color color)
         {
             var button = UiFactory.CreateButton(name, row.transform, color);
-            UiFactory.SetSize(button.gameObject, UiTheme.SettingsFooterButtonWidth, 110f);
+            UiFactory.SetSize(button.gameObject,
+                UiTheme.SettingsFooterButtonWidth, UiTheme.SettingsFooterButtonHeight);
             var label = UiFactory.CreateText("Label", button.transform, text,
                 UiTheme.StatusFontSize, Color.white);
             UiFactory.Stretch(label.rectTransform);

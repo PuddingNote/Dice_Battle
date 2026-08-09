@@ -66,6 +66,16 @@ namespace DiceBattle.UI
             }
         }
 
+        /// <summary>
+        /// 판을 한 번이라도 끝낸 기록이 남아 있는가.
+        ///
+        /// 두 키 모두 <see cref="ApplyResult"/>에서만 쓰이므로, 값이 아니라 <b>키의 존재</b>가
+        /// "이 사람은 이미 게임을 해 봤다"는 뜻이 된다. 시작 점수가 0이라 값만 봐서는
+        /// 신규 사용자와 구분되지 않는다.
+        /// </summary>
+        public static bool HasPlayed
+            => PlayerPrefs.HasKey(ScoreKey) || PlayerPrefs.HasKey(HighestKey);
+
         /// <summary>난이도 표(읽기 전용). 화면이 해금 상태와 점수 폭을 표시할 때 쓴다.</summary>
         public static DifficultyTable Difficulties => Table;
 

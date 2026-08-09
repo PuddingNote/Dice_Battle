@@ -28,9 +28,31 @@ namespace DiceBattle.Tests
         {
             // 제거로 지던 라인을 뒤집을 수 있으면 제거를 선택해야 한다.
             //   P1: line0=[5]  (다른 라인 비어 있음)
+            //   P2: line0=[6], line1=[5,5], line2=[5,5]
+            // 손패=6 을 line0 에 놓으면 상대 6 제거 → 상대 line0=0, 내 5가 남아 라인0 우세.
+            //
+            // <b>line1/2 는 5로 채워 둔다.</b> 예전에는 여기도 6이라 손패로 지울 수 있었고,
+            // 그쪽이 2개 18점으로 훨씬 큰 제거였다. 즉 "어느 제거를 고르는가"를 묻는 판이
+            // 되어 있었는데, 이 테스트가 확인하려는 것은 "제거를 고르는가" 하나다.
+            // 제거 후보를 line0 하나로 좁혀 그것만 남긴다.
+            var s = StateWithPending(6);
+            Put(s, PlayerId.One, 0, 5);
+            Put(s, PlayerId.Two, 0, 6);
+            Put(s, PlayerId.Two, 1, 5, 5);
+            Put(s, PlayerId.Two, 2, 5, 5);
+
+            var ai = new HeuristicAiStrategy();
+            Assert.AreEqual(0, ai.ChoosePrimaryLine(s, PlayerId.One));
+        }
+
+        [Test]
+        public void Heuristic_Prefers_The_Bigger_Removal()
+        {
+            // 제거 후보가 여럿이면 큰 쪽을 고른다.
+            //   P1: line0=[5]
             //   P2: line0=[6], line1=[6,6], line2=[6,6]
-            // 손패=6 을 line0 에 놓으면 상대 6 제거 → 상대 line0=0, 내 5가 남아 라인0 승리.
-            // (line1/2 는 18점이라 손패로 이길 수 없음)
+            // line0 은 1개 6점, line1/2 는 2개 18점을 지운다.
+            // 작은 쪽을 고르면 18점짜리 두 줄이 그대로 남아 사실상 진 판이 된다.
             var s = StateWithPending(6);
             Put(s, PlayerId.One, 0, 5);
             Put(s, PlayerId.Two, 0, 6);
@@ -38,7 +60,10 @@ namespace DiceBattle.Tests
             Put(s, PlayerId.Two, 2, 6, 6);
 
             var ai = new HeuristicAiStrategy();
-            Assert.AreEqual(0, ai.ChoosePrimaryLine(s, PlayerId.One));
+            int pick = ai.ChoosePrimaryLine(s, PlayerId.One);
+
+            Assert.AreNotEqual(0, pick,
+                "1개 6점짜리 제거를 고르고 2개 18점짜리 두 줄을 남겼다.");
         }
 
         [Test]

@@ -110,6 +110,7 @@ namespace DiceBattle.EditorTools
 
             DrawStats();
             DrawWallet();
+            DrawTutorial();
 
             if (!Application.isPlaying) return;
 
@@ -117,6 +118,33 @@ namespace DiceBattle.EditorTools
             EditorGUILayout.HelpBox(
                 "플레이 중에 바꾼 값은 메인 메뉴나 난이도 선택 화면을 다시 열어야 반영된다.",
                 MessageType.Info);
+        }
+
+        /// <summary>
+        /// 튜토리얼은 한 번 보면 다시 뜨지 않으므로, 그냥은 확인이 한 번뿐이다.
+        /// 개발 중에는 점수 기록이 이미 있어 저장 키를 지워도 "기존 사용자"로 판정되니
+        /// 지우는 대신 "아직 안 봤음"으로 덮어쓴다.
+        /// </summary>
+        private void DrawTutorial()
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("튜토리얼", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("상태", TutorialState.ShouldPlay ? "아직 안 봄" : "완료");
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("다음 게임 시작에서 다시 띄우기"))
+                {
+                    TutorialState.EditorOffer();
+                    Repaint();
+                }
+
+                if (GUILayout.Button("완료 처리"))
+                {
+                    TutorialState.MarkDone();
+                    Repaint();
+                }
+            }
         }
 
         /// <summary>

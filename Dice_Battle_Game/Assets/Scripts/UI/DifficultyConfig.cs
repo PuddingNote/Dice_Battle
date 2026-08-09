@@ -28,10 +28,8 @@ namespace DiceBattle.UI
             [Range(0f, 1f)] public float playBest;
             [Tooltip("기본 배치를 '일부러 최악 수'로 둘 확률(쉬움용)")]
             [Range(0f, 1f)] public float playWorst;
-            [Tooltip("추가(특수) 주사위를 똑똑하게 배치할 확률(방해 배치 포함)")]
+            [Tooltip("추가(특수) 주사위를 최선 수로 배치할 확률")]
             [Range(0f, 1f)] public float smartExtra;
-            [Tooltip("AI 주사위 하향 편향(0=공정, 1=강하게 낮은 값). 높을수록 AI가 불리=쉬움")]
-            [Range(0f, 1f)] public float diceLowBias;
         }
 
         [System.Serializable]
@@ -59,16 +57,16 @@ namespace DiceBattle.UI
         [Tooltip("Lv1~Lv10 순서. 칸이 모자라면 그 레벨은 코드 기본값을 사용한다.")]
         public LevelSettings[] levels = new LevelSettings[]
         {
-            new LevelSettings { playBest = 0.06f, playWorst = 0.40f, smartExtra = 0.24f, diceLowBias = 0.70f }, // Lv1 가장 쉬움
-            new LevelSettings { playBest = 0.15f, playWorst = 0.24f, smartExtra = 0.30f, diceLowBias = 0.62f },
-            new LevelSettings { playBest = 0.25f, playWorst = 0.09f, smartExtra = 0.36f, diceLowBias = 0.54f },
-            new LevelSettings { playBest = 0.35f, playWorst = 0.00f, smartExtra = 0.44f, diceLowBias = 0.47f },
-            new LevelSettings { playBest = 0.48f, playWorst = 0.00f, smartExtra = 0.53f, diceLowBias = 0.39f },
-            new LevelSettings { playBest = 0.60f, playWorst = 0.00f, smartExtra = 0.63f, diceLowBias = 0.31f },
-            new LevelSettings { playBest = 0.72f, playWorst = 0.00f, smartExtra = 0.72f, diceLowBias = 0.23f },
-            new LevelSettings { playBest = 0.81f, playWorst = 0.00f, smartExtra = 0.81f, diceLowBias = 0.16f },
-            new LevelSettings { playBest = 0.91f, playWorst = 0.00f, smartExtra = 0.91f, diceLowBias = 0.08f },
-            new LevelSettings { playBest = 1.00f, playWorst = 0.00f, smartExtra = 1.00f, diceLowBias = 0.00f }, // Lv10 가장 어려움
+            new LevelSettings { playBest = 0.04f, playWorst = 0.46f, smartExtra = 0.04f }, // Lv1 가장 쉬움
+            new LevelSettings { playBest = 0.06f, playWorst = 0.34f, smartExtra = 0.08f },
+            new LevelSettings { playBest = 0.10f, playWorst = 0.22f, smartExtra = 0.14f },
+            new LevelSettings { playBest = 0.15f, playWorst = 0.10f, smartExtra = 0.20f },
+            new LevelSettings { playBest = 0.22f, playWorst = 0.00f, smartExtra = 0.28f },
+            new LevelSettings { playBest = 0.35f, playWorst = 0.00f, smartExtra = 0.40f },
+            new LevelSettings { playBest = 0.49f, playWorst = 0.00f, smartExtra = 0.53f },
+            new LevelSettings { playBest = 0.64f, playWorst = 0.00f, smartExtra = 0.68f },
+            new LevelSettings { playBest = 0.82f, playWorst = 0.00f, smartExtra = 0.84f },
+            new LevelSettings { playBest = 1.00f, playWorst = 0.00f, smartExtra = 1.00f }, // Lv10 가장 어려움
         };
 
         [Tooltip("해금선과 승/패 점수를 만드는 상수. 실제 표는 '난이도 표 출력'으로 확인한다.")]
@@ -100,14 +98,6 @@ namespace DiceBattle.UI
             if (TryGet(level, out var s))
                 return new LeveledAiStrategy(s.playBest, s.playWorst, s.smartExtra);
             return new LeveledAiStrategy(level);
-        }
-
-        /// <summary>설정에 따라 난이도 주사위 롤러를 생성.</summary>
-        public IDiceRoller CreateRoller(PlayerId aiPlayer, int level)
-        {
-            if (TryGet(level, out var s))
-                return new DifficultyDiceRoller(aiPlayer, (double)s.diceLowBias, new System.Random());
-            return new DifficultyDiceRoller(aiPlayer, level);
         }
 
         /// <summary>

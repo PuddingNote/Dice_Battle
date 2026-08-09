@@ -3,7 +3,7 @@ namespace DiceBattle.Core
     /// <summary>
     /// 난이도 한 단계의 <b>점수 규칙</b>(불변).
     ///
-    /// AI 행동 수치(playBest / diceLowBias 등)는 여기 들어가지 않는다.
+    /// AI 행동 수치(playBest / playWorst 등)는 여기 들어가지 않는다.
     /// 그쪽은 Unity 인스펙터에서 조정하는 DifficultyConfig 에셋이 들고 있고,
     /// 이 구조체는 UnityEngine에 의존하지 않는 순수 점수 규칙만 담당한다.
     /// 하나로 합치면 Core가 엔진에 묶여 테스트에서 못 쓴다.

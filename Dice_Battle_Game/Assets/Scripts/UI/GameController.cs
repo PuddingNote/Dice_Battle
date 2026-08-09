@@ -8,7 +8,7 @@ namespace DiceBattle.UI
 {
     /// <summary>
     /// Core 규칙 엔진 + 난이도 AI + BoardView 를 연결해 사람(P1) vs AI(P2) 대전을 진행한다.
-    /// 선공은 매 판 랜덤, AI는 난이도 레벨(1~5)로 동작한다.
+    /// 선공은 매 판 랜덤, AI는 난이도 레벨(1~10)로 동작한다.
     /// </summary>
     public sealed class GameController : MonoBehaviour
     {
@@ -167,8 +167,8 @@ namespace DiceBattle.UI
             _board.SetTrayPickable(false);
             _board.SetRerollInteractable(false);
 
-            // AI(P2)만 난이도 가중 주사위, 사람은 공정. 설정 에셋이 있으면 그 값을 사용.
-            _game = new DiceGame(roller ?? DefaultRoller(level));
+            // 주사위는 양쪽 모두 공정하다. 난이도는 AI 쪽 배치 실력으로만 만든다.
+            _game = new DiceGame(roller ?? DefaultRoller());
             _ai = ai ?? DefaultAi(level);
 
             if (HeaderOverride != null) _board.SetHeaderText(HeaderOverride);
@@ -183,9 +183,11 @@ namespace DiceBattle.UI
             StartCoroutine(OpeningRoutine());
         }
 
-        /// <summary>난이도 설정 에셋이 있으면 그 값으로, 없으면 코드 기본값으로 롤러를 만든다.</summary>
-        public IDiceRoller DefaultRoller(int level)
-            => _difficulty != null ? _difficulty.CreateRoller(Ai, level) : new DifficultyDiceRoller(Ai, level);
+        /// <summary>
+        /// 주사위 롤러. <b>난이도와 무관하게 항상 공정하다</b> —
+        /// 난이도는 AI의 배치 실력으로만 만든다(docs/Difficulty.md 2장).
+        /// </summary>
+        public IDiceRoller DefaultRoller() => new RandomDiceRoller();
 
         /// <summary>같은 규칙으로 AI를 만든다. 튜토리얼 각본이 끝난 뒤 이어받을 폴백이기도 하다.</summary>
         public IAiStrategy DefaultAi(int level)

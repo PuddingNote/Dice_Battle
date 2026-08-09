@@ -104,7 +104,7 @@ namespace DiceBattle.UI
 
             // 각본이 끝나면 진짜 Lv.1 AI와 Lv.1 주사위가 이어받는다. 뒷구간은 자유 배치라
             // 각본을 계속 밀어붙이면 놓은 자리와 맞지 않는 수가 나온다.
-            var roller = new ScriptedDiceRoller(TutorialScript.Dice, _controller.DefaultRoller(ScriptLevel));
+            var roller = new ScriptedDiceRoller(TutorialScript.Dice, _controller.DefaultRoller());
             var ai = new ScriptedAiStrategy(TutorialScript.AiMoves, _controller.DefaultAi(ScriptLevel));
 
             _controller.StartMatch(ScriptLevel, roller, ai, TutorialScript.FirstPlayer);

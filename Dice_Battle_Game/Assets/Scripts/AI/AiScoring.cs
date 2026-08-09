@@ -40,34 +40,5 @@ namespace DiceBattle.AI
             }
             return c;
         }
-
-        /// <summary>
-        /// (me 기준) 지정 필드/라인에 addedValue 를 놓는다고 가정했을 때
-        /// me 가 "이기는(점수 우위)" 라인의 개수. 그리디 평가에 사용.
-        /// (제거 효과는 반영하지 않는다 — 제거는 상위 로직에서 별도 우선 처리)
-        /// </summary>
-        public static int MyLineWinsAfter(GameState s, PlayerId me, PlayerId targetField, int line, int addedValue)
-        {
-            PlayerId opp = me.Other();
-            int wins = 0;
-
-            for (int i = 0; i < Field.LineCount; i++)
-            {
-                int myScore = s.Field(me)[i].Score();
-                int oppScore = s.Field(opp)[i].Score();
-
-                if (i == line)
-                {
-                    if (targetField == me)
-                        myScore = LineScoreWith(s.Field(me)[i], addedValue);
-                    else
-                        oppScore = LineScoreWith(s.Field(opp)[i], addedValue);
-                }
-
-                if (myScore > oppScore) wins++;
-            }
-
-            return wins;
-        }
     }
 }

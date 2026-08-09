@@ -13,46 +13,36 @@ MonoBehaviour:
   m_Name: DifficultyConfig
   m_EditorClassIdentifier: DiceBattle.UI::DiceBattle.UI.DifficultyConfig
   levels:
+  - playBest: 0.04
+    playWorst: 0.46
+    smartExtra: 0.04
   - playBest: 0.06
-    playWorst: 0.4
-    smartExtra: 0.24
-    diceLowBias: 0.7
+    playWorst: 0.34
+    smartExtra: 0.08
+  - playBest: 0.1
+    playWorst: 0.22
+    smartExtra: 0.14
   - playBest: 0.15
-    playWorst: 0.24
-    smartExtra: 0.3
-    diceLowBias: 0.62
-  - playBest: 0.25
-    playWorst: 0.09
-    smartExtra: 0.36
-    diceLowBias: 0.54
+    playWorst: 0.1
+    smartExtra: 0.2
+  - playBest: 0.22
+    playWorst: 0
+    smartExtra: 0.28
   - playBest: 0.35
     playWorst: 0
-    smartExtra: 0.44
-    diceLowBias: 0.47
-  - playBest: 0.48
+    smartExtra: 0.4
+  - playBest: 0.49
     playWorst: 0
     smartExtra: 0.53
-    diceLowBias: 0.39
-  - playBest: 0.6
+  - playBest: 0.64
     playWorst: 0
-    smartExtra: 0.63
-    diceLowBias: 0.31
-  - playBest: 0.72
+    smartExtra: 0.68
+  - playBest: 0.82
     playWorst: 0
-    smartExtra: 0.72
-    diceLowBias: 0.23
-  - playBest: 0.81
-    playWorst: 0
-    smartExtra: 0.81
-    diceLowBias: 0.16
-  - playBest: 0.91
-    playWorst: 0
-    smartExtra: 0.91
-    diceLowBias: 0.08
+    smartExtra: 0.84
   - playBest: 1
     playWorst: 0
     smartExtra: 1
-    diceLowBias: 0
   scoreCurve:
     baseWinPoints: 20
     growth: 1.35

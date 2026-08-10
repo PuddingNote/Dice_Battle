@@ -34,6 +34,18 @@ namespace DiceBattle.UI
             if (Label != null) Label.color = tint;
         }
 
+        /// <summary>
+        /// 클릭 가능 여부(Button.interactable)는 건드리지 않고 흐림 정도만 바꾼다.
+        /// 상대 진영 상태 표시처럼 <b>애초에 누를 수 없는</b> 버튼의 "썼음/남음" 표시에 쓴다 —
+        /// SetInteractable을 쓰면 그때마다 클릭 가능 여부까지 같이 바뀌어 버린다.
+        /// </summary>
+        public void SetDimmed(bool dimmed)
+        {
+            Color tint = dimmed ? new Color(1f, 1f, 1f, 0.3f) : Color.white;
+            if (Icon != null) Icon.color = tint;
+            if (Label != null) Label.color = tint;
+        }
+
         /// <summary>아이콘을 좌우 반전한다(오른쪽 화살표 이미지를 왼쪽 화살표로 재사용).</summary>
         public void FlipIcon()
         {

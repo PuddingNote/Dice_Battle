@@ -100,7 +100,7 @@ namespace DiceBattle.UI
             _controller.RerollGate = AllowReroll;
             _controller.TrayGate = AllowTrayPick;
             _controller.HeaderOverride = "튜토리얼";
-            _controller.SuppressAds = true;
+            _controller.SuppressAds = true; // FriendlyMode/좌우 퍼스펙티브는 뒤이은 StartMatch가 항상 확정한다
 
             // 각본이 끝나면 진짜 Lv.1 AI와 Lv.1 주사위가 이어받는다. 뒷구간은 자유 배치라
             // 각본을 계속 밀어붙이면 놓은 자리와 맞지 않는 수가 나온다.

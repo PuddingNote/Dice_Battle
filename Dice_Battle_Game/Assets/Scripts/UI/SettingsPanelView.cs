@@ -24,6 +24,9 @@ namespace DiceBattle.UI
         private readonly Image _sfxToggleImage;
         private readonly Slider _sfxSlider;
 
+        private readonly Button _tutorialButton;
+        private readonly TMP_Text _tutorialButtonLabel;
+
         public bool IsOpen => _root.activeSelf;
 
         /// <summary>설정 창 안의 "게임 설명서" 버튼을 눌렀을 때(게임 중에도 규칙을 볼 수 있게).</summary>
@@ -72,9 +75,10 @@ namespace DiceBattle.UI
             var manualButton = BuildFooterButton(topRow, "ManualButton", "게임 설명서", UiTheme.CenterPanel);
             manualButton.onClick.AddListener(() => ManualRequested?.Invoke());
 
-            var tutorialButton = BuildFooterButton(topRow, "TutorialButton", "튜토리얼 다시 보기",
+            _tutorialButton = BuildFooterButton(topRow, "TutorialButton", "튜토리얼 다시 보기",
                 UiTheme.CenterPanel);
-            tutorialButton.onClick.AddListener(() => TutorialRequested?.Invoke());
+            _tutorialButton.onClick.AddListener(() => TutorialRequested?.Invoke());
+            _tutorialButtonLabel = _tutorialButton.transform.Find("Label")?.GetComponent<TMP_Text>();
 
             var bottomRow = BuildFooterRow(window, "ButtonRowBottom");
 
@@ -136,6 +140,17 @@ namespace DiceBattle.UI
             Refresh();
             _root.SetActive(true);
             _root.transform.SetAsLastSibling();
+        }
+
+        /// <summary>
+        /// 친선대전 중에는 끈다 — 튜토리얼은 각본 있는 AI 대전이라, 실제 대전 도중
+        /// 눌리면 진행 중인 판이 사라지고 뜬금없이 튜토리얼이 시작돼 버린다.
+        /// </summary>
+        public void SetTutorialEnabled(bool enabled)
+        {
+            _tutorialButton.interactable = enabled;
+            if (_tutorialButtonLabel != null)
+                _tutorialButtonLabel.color = enabled ? Color.white : new Color(1f, 1f, 1f, 0.35f);
         }
 
         public void Close()

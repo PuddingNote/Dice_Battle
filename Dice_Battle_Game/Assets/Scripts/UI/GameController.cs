@@ -3,6 +3,7 @@ using System.Collections;
 using UnityEngine;
 using DiceBattle.Core;
 using DiceBattle.AI;
+using DiceBattle.Managers;
 
 namespace DiceBattle.UI
 {
@@ -39,9 +40,20 @@ namespace DiceBattle.UI
         private bool _adRerollAvailable;
         private Dice _rerollCandidate;
 
-        private readonly PlayerId _human = PlayerId.One;
+        // AI 대전은 항상 One. 친선대전은 방장이면 One, 참가자면 Two — StartFriendlyMatch가
+        // 지정한다. readonly가 아닌 이유는 그것 하나뿐이다(StartMatch는 항상 One으로 되돌린다).
+        private PlayerId _human = PlayerId.One;
         private readonly System.Random _rng = new System.Random();
+
+        // 이름은 그대로 뒀지만(AI 대전 시절부터의 이름) 뜻은 "상대 쪽"이다 —
+        // 친선대전에서는 AI가 아니라 원격의 실제 플레이어를 가리킨다.
         private PlayerId Ai => _human.Other();
+
+        /// <summary>친선대전 방 정보(코드·방장 여부). AI 대전에서는 null.</summary>
+        private RoomInfo _friendlyRoom;
+
+        /// <summary>이 판에서 "나"에 해당하는 PlayerId. AI 대전은 항상 One.</summary>
+        public PlayerId MyPlayerId => _human;
 
         // 주사위를 뽑고 무엇을 뽑았는지 확인할 시간(초) → 그 뒤 AI가 행동.
         private const float AiThinkDelay = 1.5f;
@@ -68,6 +80,12 @@ namespace DiceBattle.UI
 
         /// <summary>한 판 종료 시 결과를 전달(점수·해금 갱신용).</summary>
         public event Action<MatchOutcome> MatchFinished;
+
+        /// <summary>
+        /// 친선대전 도중 상대가 떠났을 때(연결 끊김 또는 스스로 나감) 발생. 유예 없이
+        /// 즉시고, 결과 정산 없이 바로 메뉴로 보내야 한다(기획서 6-1 확정 사항).
+        /// </summary>
+        public event Action OpponentLeft;
 
         // ---- 튜토리얼 훅 ----
         //
@@ -99,6 +117,16 @@ namespace DiceBattle.UI
         /// 각본이 광고 화면에 끊기면 어디까지 진행됐는지도 흐려진다.
         /// </summary>
         public bool SuppressAds { get; set; }
+
+        /// <summary>
+        /// 친선대전 모드인가(기획서 2장). true면:
+        /// - 상대 진영에도 리롤 상태 표시가 뜬다(조작은 못 함, 상태 표시 전용).
+        /// - 기본 리롤을 소진해도 광고 리롤을 절대 제안하지 않는다(AdRerollRequested 미발생,
+        ///   AdManager 호출 자체가 일어나지 않음).
+        /// 점수/코인/미션 갱신 스킵은 이 컨트롤러가 아니라 GameManager.OnMatchFinished가 맡는다
+        /// (튜토리얼과 같은 자리, 같은 이유 — 정산은 컨트롤러가 아니라 상위에서 결정).
+        /// </summary>
+        public bool FriendlyMode { get; set; }
 
         /// <summary>지금 사람이 무엇을 눌러야 하는 상태인가.</summary>
         public InputMode Mode => _mode;
@@ -153,6 +181,17 @@ namespace DiceBattle.UI
         public void StartMatch(int level, IDiceRoller roller, IAiStrategy ai, PlayerId? firstPlayer)
         {
             StopAllCoroutines();
+            FriendlyRoomService.StopListeningForState(); // 직전이 친선대전이었다면 리스너 정리
+            FriendlyRoomService.StopPresence();
+
+            // 이 메서드는 AI 대전/튜토리얼 전용 진입점이다. 직전 판이 친선대전이었어도
+            // 여기서 항상 확정한다 — 안 그러면 참가자(Two)로 있던 값이 새 AI 대전에도
+            // 남아 화면 좌/우가 뒤집히거나, FriendlyMode가 켜진 채로 점수가 하나도 안
+            // 쌓이는 판이 생긴다.
+            FriendlyMode = false;
+            _human = PlayerId.One;
+            _friendlyRoom = null;
+
             _level = level;
             _humanRemoved = 0;
             _humanRerolls = 0;
@@ -166,6 +205,8 @@ namespace DiceBattle.UI
             _board.HideResult();
             _board.SetTrayPickable(false);
             _board.SetRerollInteractable(false);
+            _board.SetOpponentRerollVisible(FriendlyMode);
+            _board.SetPerspective(_human); // 직전 친선대전이 참가자(Two)였어도 여기서 되돌린다
 
             // 주사위는 양쪽 모두 공정하다. 난이도는 AI 쪽 배치 실력으로만 만든다.
             _game = new DiceGame(roller ?? DefaultRoller());
@@ -192,6 +233,109 @@ namespace DiceBattle.UI
         /// <summary>같은 규칙으로 AI를 만든다. 튜토리얼 각본이 끝난 뒤 이어받을 폴백이기도 하다.</summary>
         public IAiStrategy DefaultAi(int level)
             => _difficulty != null ? _difficulty.CreateAi(level) : new LeveledAiStrategy(level);
+
+        // ---- 친선대전 ----
+
+        /// <summary>
+        /// 방 코드 대전을 시작한다(문서 FriendlyMatch.md). <paramref name="room"/>이 방장인지
+        /// 참가자인지에 따라 <see cref="MyPlayerId"/>가 갈린다.
+        ///
+        /// <b>선공을 굴리고 첫 상태를 쓰는 건 방장뿐이다.</b> 참가자가 로컬에서 독립적으로
+        /// <c>DiceGame.Start</c>를 부르면 자기 나름의 난수로 다른 판을 시작해 버려 처음부터
+        /// 어긋난다 — 참가자는 항상 방장이 쓴 상태를 <see cref="OnRemoteStateReceived"/>로
+        /// 받기만 한다.
+        /// </summary>
+        public void StartFriendlyMatch(RoomInfo room, PlayerId firstPlayer)
+        {
+            StopAllCoroutines();
+            FriendlyRoomService.StopListeningForState();
+            FriendlyRoomService.StopPresence();
+
+            FriendlyMode = true;
+            _human = room.MyPlayerId;
+            _friendlyRoom = room;
+            _level = 0; // 친선대전은 난이도가 없다 — 점수 정산 자체를 안 타므로 값은 안 쓰인다
+
+            _humanRemoved = 0;
+            _humanRerolls = 0;
+            _humanExtras = 0;
+            _humanExtrasOnOpponent = 0;
+            _mode = InputMode.None;
+            _rerollAvailable = true;
+            _adRerollAvailable = false; // 친선대전은 광고 리롤 트랙 자체를 안 씀(2번 작업)
+            _rerollCandidate = null;
+            _board.ClearFx();
+            _board.HideResult();
+            _board.SetTrayPickable(false);
+            _board.SetRerollInteractable(false);
+            _board.SetOpponentRerollVisible(true);
+            _board.SetPerspective(_human);
+            _board.SetHeaderText("친선대전");
+
+            FriendlyRoomService.ListenForState(room.Code, OnRemoteStateReceived,
+                err => Debug.LogError($"[Friendly] 상태 수신 오류: {err}"));
+            FriendlyRoomService.ArmPresence(room, OnOpponentLeft,
+                err => Debug.LogError($"[Friendly] 연결 감지 오류: {err}"));
+
+            if (room.IsHost)
+            {
+                _game = new DiceGame(DefaultRoller());
+                _game.Start(firstPlayer);
+                _board.Render(_game.State);
+                _board.RefreshTray(_game.State);
+                PushFriendlyState();
+                StartCoroutine(OpeningRoutine());
+            }
+            else
+            {
+                // 참가자는 아직 아무 상태도 없다 — 방장의 첫 전송을 기다린다.
+                _game = new DiceGame(DefaultRoller());
+                _board.Render(_game.State);
+                _board.RefreshTray(_game.State);
+            }
+        }
+
+        /// <summary>내 턴 행동(배치)이 끝날 때마다 상태 전체를 전송한다. 친선대전이 아니면 아무 일도 안 한다.</summary>
+        private void PushFriendlyState()
+        {
+            if (!FriendlyMode) return;
+
+            var data = GameStateSnapshot.Capture(_game.State);
+            FriendlyRoomService.PushState(_friendlyRoom.Code, data, ok =>
+            {
+                if (!ok) Debug.LogError("[Friendly] 상태 전송 실패");
+            });
+        }
+
+        /// <summary>상대가 떠났을 때(연결 끊김 또는 스스로 나감). 정산 없이 즉시 위로 알린다.</summary>
+        private void OnOpponentLeft()
+        {
+            if (!FriendlyMode) return; // 이미 나간 뒤 늦게 온 이벤트 방어
+
+            StopAllCoroutines();
+            FriendlyRoomService.StopListeningForState();
+            FriendlyRoomService.StopPresence();
+            _mode = InputMode.None;
+            OpponentLeft?.Invoke();
+        }
+
+        /// <summary>
+        /// 상대가 둔 수(또는 방장의 첫 상태)가 도착했을 때. 로컬에서 아무것도 다시 계산하지
+        /// 않고 받은 상태로 그대로 갈아 끼운 뒤 스냅 렌더링한다(연출 없음 — v1 결정사항).
+        /// </summary>
+        private void OnRemoteStateReceived(GameStateData data)
+        {
+            if (!FriendlyMode) return; // 이미 판을 나간 뒤 늦게 도착한 이벤트 방어
+
+            GameState restored = GameStateSnapshot.Restore(data);
+            _game = new DiceGame(DefaultRoller(), restored);
+            _board.Render(_game.State);
+            _board.RefreshTray(_game.State);
+            BeginTurn();
+        }
+
+        /// <summary>상대(원격) 턴. 아무것도 하지 않고 기다린다 — 다음 진행은 상태 수신이 맡는다.</summary>
+        private void RemoteTurn() => LockInput();
 
         /// <summary>첫 턴 전에 한 번 멈출 자리(튜토리얼 도입 안내).</summary>
         private IEnumerator OpeningRoutine()
@@ -223,7 +367,17 @@ namespace DiceBattle.UI
         /// </summary>
         public void AbortMatch()
         {
+            // 친선대전을 스스로 나가는 경우(뒤로가기/메뉴로 등). 아직 게임이 끝나기 전이면
+            // 상대에게 즉시 알려야 한다 — 게임이 이미 끝난 뒤라면 BeginTurn이 이미
+            // StopPresence를 해 뒀으므로 여기 와도 아무도 안 듣고 있어 안전하다.
+            if (FriendlyMode && _friendlyRoom != null)
+                FriendlyRoomService.MarkLeft(_friendlyRoom);
+
             StopAllCoroutines();
+            FriendlyRoomService.StopListeningForState();
+            FriendlyRoomService.StopListeningForGuest();
+            FriendlyRoomService.StopListeningForStart();
+            FriendlyRoomService.StopPresence();
             _mode = InputMode.None;
             _rerollCandidate = null;
             _board.AbortAnimations();
@@ -243,6 +397,15 @@ namespace DiceBattle.UI
             if (s.IsGameOver)
             {
                 LockInput();
+
+                // 정상 종료다 — 여기서부터는 양쪽 다 결과 화면을 거쳐 "메뉴로"로 나가는
+                // 정상 흐름이니, 상대가 먼저 나가도 더 이상 "연결 끊김"으로 오인하면 안 된다.
+                if (FriendlyMode)
+                {
+                    FriendlyRoomService.StopListeningForState();
+                    FriendlyRoomService.StopPresence();
+                }
+
                 // 라인별 승자 도장을 볼 수 있도록 잠시 뒤 결과 화면 표시.
                 StartCoroutine(EndGameAfterDelay());
                 return;
@@ -250,6 +413,8 @@ namespace DiceBattle.UI
 
             if (s.CurrentPlayer == _human)
                 StartCoroutine(HumanTurn());
+            else if (FriendlyMode)
+                RemoteTurn();
             else
                 StartCoroutine(AiTurn());
         }
@@ -303,8 +468,12 @@ namespace DiceBattle.UI
 
         // ---- 리롤 ----
 
-        /// <summary>광고 리롤을 제안할 수 있는 상태인가. 광고가 안 실려 있으면 제안하지 않는다.</summary>
-        private bool CanOfferAdReroll => _adRerollAvailable && !SuppressAds && AdManager.IsRewardedReady;
+        /// <summary>
+        /// 광고 리롤을 제안할 수 있는 상태인가. 광고가 안 실려 있으면 제안하지 않는다.
+        /// <b>친선대전에서는 항상 false</b> — 광고 제안 자체가 정책 위반(기획서 2-2)이라,
+        /// FriendlyMode를 맨 앞에 두어 나머지 조건(특히 AdManager 호출)까지 아예 평가되지 않게 한다.
+        /// </summary>
+        private bool CanOfferAdReroll => !FriendlyMode && _adRerollAvailable && !SuppressAds && AdManager.IsRewardedReady;
 
         private void OnRerollClicked()
         {
@@ -405,6 +574,7 @@ namespace DiceBattle.UI
         private IEnumerator HumanPrimary(int line)
         {
             yield return StartCoroutine(DoPrimary(_human, line));
+            PushFriendlyState(); // 친선대전이 아니면 아무 일도 안 함
             yield return RunInterlude(TutorialBeat.HumanActed);
             BeginTurn();
         }
@@ -412,6 +582,7 @@ namespace DiceBattle.UI
         private IEnumerator HumanExtra(PlayerId field, int line)
         {
             yield return StartCoroutine(DoExtra(_human, field, line));
+            PushFriendlyState(); // 친선대전이 아니면 아무 일도 안 함
             yield return RunInterlude(TutorialBeat.HumanActed);
             BeginTurn();
         }

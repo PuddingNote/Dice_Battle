@@ -98,13 +98,11 @@ namespace DiceBattle.UI
         public const int MenuManualFontSize = 52;   // "게임 설명서"
         public const int MenuStatsFontSize = 52;    // "전적"
         public const int MenuMissionFontSize = 46;  // "일일 미션" — 글자가 많아 한 단계 작게
-        // "전적"과 "게임 설명서"가 한 줄에 나란히 서고, 그 아래 "게임 시작"이 혼자 한 줄을 쓴다.
-        // 윗줄(320 + 40 + 320 = 680)과 폭을 맞춰야 세 버튼이 한 덩어리로 보인다.
-        public const float MenuStartButtonWidth = 680f;
-        public const float MenuStartButtonHeight = 120f;
-        public const float MenuPairButtonWidth = 320f;
-        public const float MenuPairButtonHeight = 120f;
-        public const int MenuPairGap = 40;
+        // 모든 메뉴 버튼이 같은 폭이다. 가장 긴 문구("게임 설명서")가 다 들어가면서
+        // 그보다 과하게 넓지 않은 값 — 늘 이 값 하나만 조절하면 전부 같이 바뀐다.
+        public const float MenuButtonWidth = 420f;
+        public const float MenuButtonHeight = 120f;
+        public const int MenuButtonGap = 40;
         public const int MenuBottomPadding = 90;    // 시작 버튼이 얼마나 아래에 붙는지
         // 남는 세로 공간을 제목 위(Head)와 제목~점수 사이(Title)가 이 비율로 나눠 갖는다.
         // Title 쪽을 키우면 제목이 위로 올라가고, Head 쪽을 키우면 제목이 아래로 내려온다.
@@ -117,6 +115,13 @@ namespace DiceBattle.UI
         public const int DifficultyTitleFontSize = 68;
         public const int DifficultySummaryFontSize = 40;
         public const int DifficultyLevelFontSize = 56;
+
+        // ---- 친선대전 로비 ----
+        // 설명 텍스트 전용 크기 — DifficultySummaryFontSize와 값을 공유하면 나중에 그쪽만
+        // 바꾸고 싶을 때 여기도 같이 바뀌어 버린다.
+        public const int FriendlyDescFontSize = 50;
+        public const float FriendlyEntryButtonWidth = 440f;
+        public const float FriendlyEntryButtonHeight = 110f;
         public const int DifficultyCardInfoFontSize = 32;
         public const float DifficultyCardWidth = 320f;
         public const float DifficultyCardHeight = 290f;
@@ -142,7 +147,7 @@ namespace DiceBattle.UI
         public const float SliderHandleSize = 58f;
         // 아래 버튼 공통 폭. 한 줄에 둘씩 들어간다.
         // 2칸 + 간격 1칸(30)이 창 안쪽 폭(1180 - 좌우 여백 60씩 = 1060)에 들어가야 한다.
-        public const float SettingsFooterButtonWidth = 505f;
+        public const float SettingsFooterButtonWidth = 480f; // "튜토리얼 다시 보기"가 다 들어가는 선에서 최소로
         public const float SettingsFooterButtonHeight = 110f;
         public const int SettingsFooterGap = 30;
 

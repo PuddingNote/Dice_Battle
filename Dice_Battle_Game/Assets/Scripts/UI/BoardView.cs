@@ -36,6 +36,13 @@ namespace DiceBattle.UI
 
         private IconButton _reroll;
 
+        /// <summary>
+        /// 친선대전 전용: 상대 진영의 리롤 상태 표시(읽기 전용). AI 대전에서는 AI가 리롤을
+        /// 쓰지 않으므로 평소엔 숨겨 둔다. 실제 사용 여부는 GameController가 원격 상태를
+        /// 받아 <see cref="SetOpponentRerollUsed"/>로 갱신한다.
+        /// </summary>
+        private IconButton _oppReroll;
+
         public event Action<PlayerId, int> LineClicked;
 
         /// <summary>
@@ -122,6 +129,7 @@ namespace DiceBattle.UI
             _tray.DiceClicked += i => TrayDiceClicked?.Invoke(i);
 
             BuildRerollButton(trayRow);
+            BuildOpponentRerollIndicator(trayRow);
         }
 
         /// <summary>트레이 좌측의 정사각형 리롤 버튼. 레이아웃에서 빼고 좌측에 직접 배치한다.</summary>
@@ -141,10 +149,49 @@ namespace DiceBattle.UI
             SetRerollInteractable(false);
         }
 
+        /// <summary>
+        /// 트레이 우측, 내 리롤 버튼과 좌우 대칭 위치의 상대 진영 표시.
+        /// 눌러도 아무 일도 일어나지 않는다 — 상대가 리롤을 썼는지 보여주는 용도일 뿐,
+        /// 내가 조작할 수 있는 버튼이 아니다(기획서 2-1). 평소(AI 대전)엔 숨겨 둔다.
+        /// </summary>
+        private void BuildOpponentRerollIndicator(RectTransform trayRow)
+        {
+            _oppReroll = UiFactory.CreateIconButton("OpponentRerollStatus", trayRow, UiSkin.RerollIcon, "리롤",
+                UiTheme.RerollButtonSize, UiTheme.RerollIconInset, 34);
+            UiFactory.IgnoreLayout(_oppReroll.Button.gameObject);
+
+            var rt = _oppReroll.Rect;
+            rt.anchorMin = new Vector2(1f, 0.5f);
+            rt.anchorMax = new Vector2(1f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = new Vector2(-UiTheme.RerollButtonX, 0f);
+
+            _oppReroll.Button.interactable = false; // 상태 표시 전용, 클릭 리스너 없음
+            _oppReroll.Button.gameObject.SetActive(false); // AI 대전에서는 숨김(친선대전 시작 시 켠다)
+        }
+
         /// <summary>리롤 버튼 활성/비활성. 비활성일 때는 아이콘/문구도 함께 흐려진다.</summary>
         public void SetRerollInteractable(bool on)
         {
             if (_reroll != null) _reroll.SetInteractable(on);
+        }
+
+        /// <summary>
+        /// 친선대전 시작/종료 시 상대 리롤 상태 표시를 켜고 끈다.
+        /// AI 대전에서는 절대 호출되지 않으며(항상 숨김), 게임이 끝나면 꺼야 다음 AI 대전에
+        /// 잔상처럼 남지 않는다.
+        /// </summary>
+        public void SetOpponentRerollVisible(bool visible)
+        {
+            if (_oppReroll == null) return;
+            _oppReroll.Button.gameObject.SetActive(visible);
+            if (visible) _oppReroll.SetDimmed(false); // 판 시작 시엔 항상 "아직 안 씀" 상태
+        }
+
+        /// <summary>상대가 이번 판의 리롤을 썼는지 표시(썼으면 흐리게).</summary>
+        public void SetOpponentRerollUsed(bool used)
+        {
+            if (_oppReroll != null) _oppReroll.SetDimmed(used);
         }
 
         /// <summary>리롤 후보를 굴려 기존 주사위 우측에 붙이는 연출(완료까지 대기).</summary>
@@ -213,6 +260,27 @@ namespace DiceBattle.UI
         }
 
         // ---- 렌더링 ----
+
+        /// <summary>
+        /// 이 판에서 "나"에 해당하는 PlayerId를 다시 지정한다. AI 대전은 항상 PlayerId.One(고정),
+        /// 친선대전은 방장이면 One, 참가자면 Two다.
+        ///
+        /// BoardView는 부팅 시 딱 한 번만 만들어져 앱 세션 내내 재사용되므로(이 게임의
+        /// 화면 구조), 판마다 "나"가 달라질 수 있는 친선대전에서는 <b>매 판 시작 시</b>
+        /// GameController가 이 메서드를 호출해야 한다 — 안 그러면 참가자(Two)로 들어간
+        /// 판에서도 자기 필드가 오른쪽에 그려진다(퍼스펙티브 미러링 깨짐).
+        ///
+        /// 물리적 좌/우 UI 배치는 생성 시점에 이미 고정돼 있어(왼쪽 칸 묶음/오른쪽 칸 묶음),
+        /// 이 메서드는 GameObject를 다시 만들지 않고 "어느 PlayerId의 데이터를 좌/우에
+        /// 그릴지"만 다시 지정한다 — 그래서 매 판 호출해도 비용이 거의 없다.
+        /// </summary>
+        public void SetPerspective(PlayerId me)
+        {
+            _humanId = me;
+            _aiId = me.Other();
+            for (int i = 0; i < _rows.Length; i++)
+                _rows[i].SetPerspective(_humanId, _aiId);
+        }
 
         public void Render(GameState state)
         {
@@ -565,8 +633,19 @@ namespace DiceBattle.UI
             _resultText.text = _resultHead + scoreLine;
 
             SetExtraOffer(false); // 지난 판의 버튼이 남아 있지 않게
+            SetContinueVisible(true); // 지난 판이 친선대전이라 숨겨져 있었을 수 있으니 매번 되돌린다
             _resultOverlay.SetActive(true);
             AudioManager.PlayRoundEnd();
+        }
+
+        /// <summary>
+        /// "계속하기" 버튼을 보이거나 감춘다. 친선대전은 재대결 흐름이 없어 "계속하기"와
+        /// "메뉴로"가 똑같이 메뉴로 돌아가므로, 버튼 하나가 의미 없이 중복된다 — 이럴 땐
+        /// 아예 감춘다. 감추면 가로 레이아웃이 "메뉴로"를 가운데로 모아 준다.
+        /// </summary>
+        public void SetContinueVisible(bool visible)
+        {
+            if (_continueButton != null) _continueButton.gameObject.SetActive(visible);
         }
 
         /// <summary>

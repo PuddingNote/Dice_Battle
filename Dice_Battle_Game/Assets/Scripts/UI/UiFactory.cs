@@ -152,6 +152,42 @@ namespace DiceBattle.UI
         }
 
         /// <summary>
+        /// 한 줄 텍스트 입력 필드(방 코드 입력 등). 이 프로젝트에 입력 필드가 필요했던
+        /// 곳이 지금까지 없어서 새로 만들었다 — Unity 기본 TMP_InputField 계층
+        /// (Viewport 안에 Text/Placeholder)을 그대로 코드로 재현한다.
+        /// </summary>
+        public static TMP_InputField CreateInputField(string name, Transform parent,
+            int fontSize, string placeholderText = "")
+        {
+            var bg = CreatePanel(name, parent, UiTheme.CenterPanel);
+            ApplyRounded(bg, UiSkin.LineNormal, UiTheme.CenterPanel);
+
+            var field = bg.gameObject.AddComponent<TMP_InputField>();
+            field.targetGraphic = bg;
+
+            var viewport = CreateRect("TextArea", bg.transform);
+            Stretch(viewport);
+            viewport.offsetMin = new Vector2(24f, 6f);
+            viewport.offsetMax = new Vector2(-24f, -6f);
+            viewport.gameObject.AddComponent<RectMask2D>();
+
+            var placeholder = CreateText("Placeholder", viewport, placeholderText, fontSize,
+                UiTheme.LabelDim, TextAnchor.MiddleLeft);
+            Stretch(placeholder.rectTransform);
+
+            var text = CreateText("Text", viewport, "", fontSize, UiTheme.Label, TextAnchor.MiddleLeft);
+            Stretch(text.rectTransform);
+
+            field.textViewport = viewport;
+            field.textComponent = text;
+            field.placeholder = placeholder;
+            field.fontAsset = GetFontAsset();
+            field.pointSize = fontSize;
+
+            return field;
+        }
+
+        /// <summary>
         /// 화면 가운데에 뜨는 창(모달) 패널을 만들고, 내용을 넣을 본체를 돌려준다.
         /// 스킨에 창 이미지가 있으면 그걸 쓰고, 없으면 코드로 만든 둥근 사각형 2겹(테두리+본체)을 쓴다.
         /// </summary>

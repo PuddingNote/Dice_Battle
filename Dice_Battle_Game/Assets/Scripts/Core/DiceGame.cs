@@ -25,10 +25,16 @@ namespace DiceBattle.Core
         /// <summary>게임 종료 시 결과(진행 중이면 null).</summary>
         public MatchOutcome? Outcome => State.Result;
 
-        public DiceGame(IDiceRoller roller)
+        public DiceGame(IDiceRoller roller) : this(roller, null) { }
+
+        /// <summary>
+        /// 이미 만들어진 상태로 시작한다(친선대전: 원격에서 받은 스냅샷을 그대로 이어받을 때).
+        /// <paramref name="state"/>가 null이면 기존과 같이 새 게임으로 시작한다.
+        /// </summary>
+        public DiceGame(IDiceRoller roller, GameState state)
         {
             _roller = roller ?? throw new ArgumentNullException(nameof(roller));
-            State = new GameState();
+            State = state ?? new GameState();
         }
 
         /// <summary>

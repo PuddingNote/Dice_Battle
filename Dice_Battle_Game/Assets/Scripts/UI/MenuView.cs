@@ -32,6 +32,9 @@ namespace DiceBattle.UI
         /// <summary>게임 설명서 열기.</summary>
         public event Action ManualRequested;
 
+        /// <summary>친선대전 화면으로 이동.</summary>
+        public event Action FriendlyRequested;
+
         public void Build(RectTransform root)
         {
             var bg = UiFactory.CreateStretchPanel("MenuRoot", root, UiTheme.Background);
@@ -59,57 +62,42 @@ namespace DiceBattle.UI
                 UiTheme.MenuScoreFontSize, UiTheme.Label);
             UiFactory.SetPreferredHeight(_scoreText.gameObject, 90f);
 
-            _missionLabel = CreateButtonPair(bg.transform,
-                "MissionButton", MissionText, UiTheme.MenuMissionFontSize,
-                () => MissionsRequested?.Invoke(),
-                "StatsButton", "전적", UiTheme.MenuStatsFontSize,
-                () => StatsRequested?.Invoke());
-
-            CreateCenteredButton(bg.transform, "ManualButton", "게임 설명서",
-                UiTheme.MenuPairButtonWidth * 2f + UiTheme.MenuPairGap,
-                UiTheme.MenuPairButtonHeight,
+            // 윗줄: 일일 미션 / 게임 설명서. 아랫줄: 전적 / 게임 시작 / 친선대전.
+            // 모든 버튼이 같은 폭(UiTheme.MenuButtonWidth)이라 두 줄이 나란한 하나의
+            // 덩어리로 보인다.
+            var topRow = CreateButtonRow(bg.transform, "TopRow");
+            _missionLabel = AddButton(topRow, "MissionButton", MissionText,
+                UiTheme.MenuButtonWidth, UiTheme.MenuButtonHeight,
+                UiTheme.MenuMissionFontSize, () => MissionsRequested?.Invoke());
+            AddButton(topRow, "ManualButton", "게임 설명서",
+                UiTheme.MenuButtonWidth, UiTheme.MenuButtonHeight,
                 UiTheme.MenuManualFontSize, () => ManualRequested?.Invoke());
 
-            // "게임 시작"이 맨 아래다. 가장 자주 누르는 버튼이라 엄지에서 제일 가깝다.
-            CreateCenteredButton(bg.transform, "StartButton", "게임 시작",
-                UiTheme.MenuStartButtonWidth, UiTheme.MenuStartButtonHeight,
+            var bottomRow = CreateButtonRow(bg.transform, "BottomRow");
+            AddButton(bottomRow, "StatsButton", "전적",
+                UiTheme.MenuButtonWidth, UiTheme.MenuButtonHeight,
+                UiTheme.MenuStatsFontSize, () => StatsRequested?.Invoke());
+            AddButton(bottomRow, "StartButton", "게임 시작",
+                UiTheme.MenuButtonWidth, UiTheme.MenuButtonHeight,
                 UiTheme.MenuStartFontSize, () => StartRequested?.Invoke());
+            AddButton(bottomRow, "FriendlyButton", "친선대전",
+                UiTheme.MenuButtonWidth, UiTheme.MenuButtonHeight,
+                UiTheme.MenuManualFontSize, () => FriendlyRequested?.Invoke());
 
             SetVisible(false);
         }
 
         /// <summary>
-        /// 세로 레이아웃은 자식을 가로로 늘리므로, 가로 레이아웃 한 줄로 감싸 폭을 고정한다.
+        /// 버튼이 나란히 놓일 가로 한 줄. 세로 레이아웃은 자식을 가로로 늘리므로,
+        /// 이렇게 감싸야 안의 버튼들이 고정폭 그대로 가운데 정렬된다.
         /// </summary>
-        private static void CreateCenteredButton(Transform parent, string name, string text,
-            float width, float height, int fontSize, Action onClick)
+        private static RectTransform CreateButtonRow(Transform parent, string name)
         {
-            var row = UiFactory.CreateRect($"{name}Row", parent);
-            UiFactory.AddHorizontalLayout(row.gameObject, 0, new RectOffset(0, 0, 0, 0));
-            UiFactory.SetPreferredHeight(row.gameObject, height);
-
-            AddButton(row, name, text, width, height, fontSize, onClick);
-        }
-
-        /// <summary>
-        /// 버튼 두 개를 한 줄에 나란히 놓는다(가로 레이아웃이 가운데로 모아 준다).
-        /// 왼쪽 버튼의 라벨을 돌려준다 — 미션 알림 표시를 붙이기 위해서다.
-        /// </summary>
-        private static TMP_Text CreateButtonPair(Transform parent,
-            string leftName, string leftText, int leftFontSize, Action onLeft,
-            string rightName, string rightText, int rightFontSize, Action onRight)
-        {
-            var row = UiFactory.CreateRect("MenuPairRow", parent);
-            UiFactory.AddHorizontalLayout(row.gameObject, UiTheme.MenuPairGap,
+            var row = UiFactory.CreateRect(name, parent);
+            UiFactory.AddHorizontalLayout(row.gameObject, UiTheme.MenuButtonGap,
                 new RectOffset(0, 0, 0, 0));
-            UiFactory.SetPreferredHeight(row.gameObject, UiTheme.MenuPairButtonHeight);
-
-            TMP_Text left = AddButton(row, leftName, leftText, UiTheme.MenuPairButtonWidth,
-                UiTheme.MenuPairButtonHeight, leftFontSize, onLeft);
-            AddButton(row, rightName, rightText, UiTheme.MenuPairButtonWidth,
-                UiTheme.MenuPairButtonHeight, rightFontSize, onRight);
-
-            return left;
+            UiFactory.SetPreferredHeight(row.gameObject, UiTheme.MenuButtonHeight);
+            return row;
         }
 
         private static TMP_Text AddButton(RectTransform row, string name, string text,

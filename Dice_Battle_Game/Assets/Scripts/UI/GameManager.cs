@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using DiceBattle.Core;
+using DiceBattle.Managers;
 
 namespace DiceBattle.UI
 {
@@ -18,10 +19,11 @@ namespace DiceBattle.UI
         /// 지금 보고 있는 화면. 뒤로가기 동작이 여기서 갈린다.
         /// (이름을 Screen으로 두면 UnityEngine.Screen을 가려 버린다.)
         /// </summary>
-        private enum ScreenId { Menu, DifficultySelect, Game }
+        private enum ScreenId { Menu, DifficultySelect, Game, FriendlyLobby }
 
         private MenuView _menu;
         private DifficultySelectView _select;
+        private FriendlyLobbyView _friendlyLobby;
         private BoardView _board;
         private GameController _controller;
         private ConfirmDialogView _dialog;
@@ -86,6 +88,7 @@ namespace DiceBattle.UI
             _controller.ContinueRequested += OnContinue;
             _controller.MatchFinished += OnMatchFinished;
             _controller.AdRerollRequested += OnAdRerollRequested;
+            _controller.OpponentLeft += OnOpponentLeft;
 
             // 메뉴는 보드 위에 오도록 나중에 생성.
             var menuGo = new GameObject("MenuView");
@@ -96,6 +99,7 @@ namespace DiceBattle.UI
             _menu.StatsRequested += () => _stats.Open();
             _menu.MissionsRequested += () => _missions.Open();
             _menu.ManualRequested += () => _manual.Open();
+            _menu.FriendlyRequested += ShowFriendlyLobby;
 
             var selectGo = new GameObject("DifficultySelectView");
             selectGo.transform.SetParent(transform, false);
@@ -103,6 +107,15 @@ namespace DiceBattle.UI
             _select.Build(canvasRoot);
             _select.StartRequested += StartGame;
             _select.BackRequested += ShowMenu;
+
+            var friendlyGo = new GameObject("FriendlyLobbyView");
+            friendlyGo.transform.SetParent(transform, false);
+            _friendlyLobby = friendlyGo.AddComponent<FriendlyLobbyView>();
+            _friendlyLobby.Build(canvasRoot);
+            _friendlyLobby.ExitRequested += ShowMenu;
+            _friendlyLobby.BackFromSubScreenRequested += OnFriendlyLobbyBackFromSub;
+            _friendlyLobby.CreateRequested += OnFriendlyCreateRequested;
+            _friendlyLobby.JoinRequested += OnFriendlyJoinRequested;
 
             // 설정 버튼은 메인 화면·게임 화면 위에 항상 떠 있어야 하므로 둘 다 만든 뒤에 생성한다.
             CreateSettingsButton(canvasRoot);
@@ -152,8 +165,18 @@ namespace DiceBattle.UI
             rt.pivot = new Vector2(1f, 1f);
             rt.anchoredPosition = new Vector2(-UiTheme.IconButtonMarginX, -UiTheme.IconButtonMarginY);
 
-            button.Button.onClick.AddListener(() => _settings.Open());
+            button.Button.onClick.AddListener(OpenSettings);
             _settingsButton = button.Button.gameObject;
+        }
+
+        /// <summary>
+        /// 친선대전 도중에는 설정 창의 "튜토리얼 다시 보기"를 잠근다 — 실제 대전 중에
+        /// 눌리면 진행 중인 판이 사라지고 각본 있는 AI 튜토리얼이 뜬금없이 시작된다.
+        /// </summary>
+        private void OpenSettings()
+        {
+            _settings.SetTutorialEnabled(!_controller.FriendlyMode);
+            _settings.Open();
         }
 
         /// <summary>튜토리얼 중에는 설정으로 빠져나갈 길을 닫는다(건너뛰기 버튼이 그 자리에 온다).</summary>
@@ -165,14 +188,75 @@ namespace DiceBattle.UI
         private void ShowMenu()
         {
             _controller.AbortMatch(); // 진행 중이던 판/연출 중단
+            // 방 만들기/입장 대기 중이었을 수 있다 — 방 생명주기 리스너는 GameController가
+            // 아니라 여기(GameManager)가 직접 걸어 뒀으므로 여기서도 직접 정리해야 한다.
+            FriendlyRoomService.StopListeningForGuest();
+            FriendlyRoomService.StopListeningForStart();
             _screen = ScreenId.Menu;
             _board.SetVisible(false);
             _select.SetVisible(false);
+            _friendlyLobby.SetVisible(false);
             RefreshMenu();
             _menu.SetVisible(true);
 
             // 하루 한 번뿐이라 성가시지 않고, 버튼으로 두면 존재를 모르는 사람이 생긴다.
             _attendance.OpenIfAvailable();
+        }
+
+        // ---- 친선대전 방 코드 ----
+
+        private void ShowFriendlyLobby()
+        {
+            _controller.AbortMatch(); // 난이도 선택 진입과 같은 패턴 — 이전 판 연출 정리
+            _screen = ScreenId.FriendlyLobby;
+            _board.SetVisible(false);
+            _select.SetVisible(false);
+            _menu.SetVisible(false);
+            _friendlyLobby.OpenEntry();
+        }
+
+        /// <summary>방 만들기/코드 입장 하위 화면을 취소하고 진입 화면으로 돌아왔을 때.</summary>
+        private void OnFriendlyLobbyBackFromSub()
+        {
+            FriendlyRoomService.StopListeningForGuest();
+            FriendlyRoomService.StopListeningForStart();
+        }
+
+        private void OnFriendlyCreateRequested()
+        {
+            _friendlyLobby.ShowCreating();
+            FriendlyRoomService.CreateRoom((room, error) =>
+            {
+                if (room == null)
+                {
+                    _friendlyLobby.ShowCreateError(error);
+                    return;
+                }
+
+                _friendlyLobby.ShowCreatedCode(room.Code);
+                FriendlyRoomService.ListenForGuest(room.Code,
+                    first => StartFriendlyMatch(room, first),
+                    err => _friendlyLobby.ShowCreateError(err));
+            });
+        }
+
+        private void OnFriendlyJoinRequested(string code)
+        {
+            _friendlyLobby.SetJoinBusy(true);
+            FriendlyRoomService.JoinRoom(code, (room, error) =>
+            {
+                _friendlyLobby.SetJoinBusy(false);
+                if (room == null)
+                {
+                    _friendlyLobby.ShowJoinError(error);
+                    return;
+                }
+
+                _friendlyLobby.ShowJoinWaiting();
+                FriendlyRoomService.ListenForStart(room.Code,
+                    first => StartFriendlyMatch(room, first),
+                    err => _friendlyLobby.ShowJoinError(err));
+            });
         }
 
         /// <summary>메뉴의 점수·코인·미션 표시를 지금 값으로 다시 그린다.</summary>
@@ -253,6 +337,16 @@ namespace DiceBattle.UI
         /// </summary>
         private void OnContinue()
         {
+            // 친선대전은 아직 재대결 흐름이 없다(방 코드 UI 작업에서 다시 설계할 예정).
+            // 여기서 걸러 내지 않으면 아래 _lastResult는 직전 AI 대전의 낡은 값을 그대로
+            // 들고 있어 엉뚱한 해금 화면으로 튈 수 있고, StartGame이 FriendlyMode가 켜진
+            // 채로 새 AI 대전을 몰래 시작해 점수가 하나도 안 쌓이는 판이 생길 수 있다.
+            if (_controller.FriendlyMode)
+            {
+                ShowMenu();
+                return;
+            }
+
             if (_lastResult.HasNewUnlock)
             {
                 ShowDifficultySelectAfterUnlock(_lastResult);
@@ -267,7 +361,26 @@ namespace DiceBattle.UI
             _menu.SetVisible(false);
             _select.SetVisible(false);
             _board.SetVisible(true);
-            _controller.StartMatch(level);
+            _controller.StartMatch(level); // FriendlyMode/좌우 퍼스펙티브는 StartMatch가 항상 확정한다
+        }
+
+        /// <summary>
+        /// 방 코드로 성사된 친선대전을 시작한다. 방 만들기/입장 화면(8번 작업)이
+        /// 방 생명주기(FriendlyRoomService.CreateRoom/JoinRoom + ListenForGuest/ListenForStart)를
+        /// 끝낸 뒤 이 메서드로 넘어온다.
+        /// </summary>
+        /// <summary>
+        /// public인 이유: 방 UI가 없던 6~7번 작업 때 만든 <c>FriendlyRoomDebugWindow</c>
+        /// (Editor 전용, 빌드 미포함)가 지금도 진단용으로 이 메서드를 직접 호출한다.
+        /// </summary>
+        public void StartFriendlyMatch(RoomInfo room, PlayerId firstPlayer)
+        {
+            _screen = ScreenId.Game;
+            _menu.SetVisible(false);
+            _select.SetVisible(false);
+            _friendlyLobby.SetVisible(false);
+            _board.SetVisible(true);
+            _controller.StartFriendlyMatch(room, firstPlayer);
         }
 
         // ---- 모바일 뒤로가기 ----
@@ -354,6 +467,15 @@ namespace DiceBattle.UI
                 return;
             }
 
+            // 친선대전 로비도 아직 대전이 시작되기 전이라 확인 없이 처리한다.
+            // 하위 화면(방 만들기/코드 입장)에 있으면 진입 화면으로, 진입 화면이면
+            // 메인 메뉴로 — 그 판단은 FriendlyLobbyView가 직접 한다(온스크린 버튼과 동일 경로).
+            if (_screen == ScreenId.FriendlyLobby)
+            {
+                _friendlyLobby.HandleBackPressed();
+                return;
+            }
+
             // 승부가 끝난 뒤(결과 화면)에는 "사라집니다" 경고가 맞지 않으므로 문구를 나눈다.
             string message = _controller.IsMatchActive
                 ? "메인 메뉴로 돌아갈까요?\n진행 중인 판은 사라집니다."
@@ -374,6 +496,16 @@ namespace DiceBattle.UI
                 () => AdManager.ShowRewarded(_controller.GrantAdReroll, OnRewardedUnavailable));
         }
 
+        /// <summary>
+        /// 친선대전 도중 상대가 떠났을 때(연결 끊김/스스로 나감). 정산 없이 즉시 메뉴로
+        /// 보내고, 왜 돌아왔는지 알 수 있도록 그 위에 안내 문구를 띄운다.
+        /// </summary>
+        private void OnOpponentLeft()
+        {
+            ShowMenu();
+            _dialog.OpenNotice("상대방과의 연결이 끊겨 대전이 종료되었습니다.", "확인", null);
+        }
+
         private void OnMatchFinished(MatchOutcome outcome)
         {
             // 튜토리얼 판은 각본이라 실력의 결과가 아니다. 점수·전적·미션 어디에도 넣지 않고
@@ -383,6 +515,17 @@ namespace DiceBattle.UI
             if (_tutorial.IsRunning)
             {
                 _tutorial.OnMatchFinished(outcome);
+                return;
+            }
+
+            // 친선대전은 완전히 격리된 모드다(기획서 2-3) — 점수·코인·전적·미션 어디에도
+            // 영향을 주지 않는다. 튜토리얼과 같은 이유로 여기서 조기 분기한다.
+            if (_controller.FriendlyMode)
+            {
+                _board.ShowResult(outcome, "");
+                // 친선대전은 재대결 흐름이 없어 "계속하기"도 "메뉴로"와 똑같이 동작한다
+                // (OnContinue 참고). 같은 동작을 하는 버튼 두 개를 보여줄 이유가 없다.
+                _board.SetContinueVisible(false);
                 return;
             }
 
@@ -595,8 +738,7 @@ namespace DiceBattle.UI
         /// </summary>
         private void OnRewardedUnavailable()
         {
-            _dialog.Open("광고를 불러오지 못했습니다.\n잠시 후 다시 시도해 주세요.",
-                "닫기", "확인", null);
+            _dialog.OpenNotice("광고를 불러오지 못했습니다.\n잠시 후 다시 시도해 주세요.", "확인", null);
         }
 
         /// <summary>

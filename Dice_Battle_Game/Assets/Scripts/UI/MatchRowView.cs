@@ -17,8 +17,12 @@ namespace DiceBattle.UI
         public int Index { get; }
         public event Action<PlayerId, int> Clicked;
 
-        private readonly PlayerId _me;
-        private readonly PlayerId _opp;
+        // readonly가 아니다 — 친선대전은 판마다 "나"가 바뀔 수 있어(방장=One/참가자=Two)
+        // BoardView.SetPerspective가 판 시작마다 다시 지정한다. 물리적 좌/우 배치(버튼·칸
+        // 묶음의 화면 위치)는 이미 생성 시점에 고정돼 있으므로, 이 두 값을 바꾸는 것만으로
+        // "어느 PlayerId의 데이터를 좌/우에 그릴지"가 안전하게 다시 매핑된다.
+        private PlayerId _me;
+        private PlayerId _opp;
 
         private readonly CellView[] _myCells = new CellView[Line.Capacity];
         private readonly CellView[] _oppCells = new CellView[Line.Capacity];
@@ -199,6 +203,13 @@ namespace DiceBattle.UI
                 _myScore.color = UiTheme.Label;
                 _oppScore.color = UiTheme.Label;
             }
+        }
+
+        /// <summary>"나"/"상대"에 해당하는 PlayerId를 다시 지정한다(BoardView.SetPerspective 참고).</summary>
+        public void SetPerspective(PlayerId me, PlayerId opp)
+        {
+            _me = me;
+            _opp = opp;
         }
 
         public CellView Cell(PlayerId field, int i) => field == _me ? _myCells[i] : _oppCells[i];

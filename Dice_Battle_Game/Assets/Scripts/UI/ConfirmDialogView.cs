@@ -14,6 +14,7 @@ namespace DiceBattle.UI
     {
         private readonly GameObject _root;
         private readonly TMP_Text _message;
+        private readonly Button _closeButton;
         private readonly TMP_Text _closeLabel;
         private readonly TMP_Text _confirmLabel;
 
@@ -44,12 +45,12 @@ namespace DiceBattle.UI
             UiFactory.SetSize(buttonRow.gameObject, 1300f, 150f);
 
             // 왼쪽: 안전한 기본 동작(그냥 닫기).
-            var closeButton = UiFactory.CreateButton("CloseButton", buttonRow.transform, UiTheme.Button);
-            UiFactory.SetSize(closeButton.gameObject, 400f, 130f);
-            _closeLabel = UiFactory.CreateText("Label", closeButton.transform, "뒤로가기",
+            _closeButton = UiFactory.CreateButton("CloseButton", buttonRow.transform, UiTheme.Button);
+            UiFactory.SetSize(_closeButton.gameObject, 400f, 130f);
+            _closeLabel = UiFactory.CreateText("Label", _closeButton.transform, "뒤로가기",
                 UiTheme.StatusFontSize, Color.white);
             UiFactory.Stretch(_closeLabel.rectTransform);
-            closeButton.onClick.AddListener(Close);
+            _closeButton.onClick.AddListener(Close);
 
             // 가운데: 선택지가 둘일 때만 나타난다.
             _altButton = UiFactory.CreateButton("AltButton", buttonRow.transform, UiTheme.ProtectButton);
@@ -96,9 +97,21 @@ namespace DiceBattle.UI
             _root.transform.SetAsLastSibling(); // 항상 최상단
         }
 
+        /// <summary>
+        /// 버튼이 하나뿐인 안내 창(선택지가 없는 알림 — 예: "상대방과의 연결이
+        /// 끊겼습니다"). 닫기 버튼을 아예 숨겨서, 두 버튼이 같은 뜻인데 두 개
+        /// 떠 있는 것처럼 보이는 일을 막는다.
+        /// </summary>
+        public void OpenNotice(string message, string confirmText, Action onConfirm)
+        {
+            Open(message, "", confirmText, onConfirm);
+            _closeButton.gameObject.SetActive(false);
+        }
+
         public void Close()
         {
             _root.SetActive(false);
+            _closeButton.gameObject.SetActive(true); // OpenNotice가 숨겼을 수 있으니 다음 사용을 위해 되돌린다
             _onConfirm = null;
             _onAlt = null;
         }

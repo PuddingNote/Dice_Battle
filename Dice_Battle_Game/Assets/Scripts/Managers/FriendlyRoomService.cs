@@ -404,6 +404,7 @@ namespace DiceBattle.Managers
                 ["phase"] = data.Phase.ToString(),
             };
             if (data.PendingDice != null) dict["pendingDice"] = DiceToWire(data.PendingDice);
+            if (data.LastReroll != null) dict["lastReroll"] = RerollToWire(data.LastReroll);
 
             var fields = new Dictionary<string, object>();
             for (int p = 0; p < data.Fields.Length; p++)
@@ -445,15 +446,24 @@ namespace DiceBattle.Managers
             ["owner"] = RoleString(d.Owner),
         };
 
+        private static Dictionary<string, object> RerollToWire(RerollData r) => new Dictionary<string, object>
+        {
+            ["value"] = r.Value,
+            ["special"] = r.IsSpecial,
+            ["picked"] = r.Picked,
+        };
+
         private static GameStateData FromWire(DataSnapshot snap)
         {
             var pendingSnap = snap.Child("pendingDice");
+            var rerollSnap = snap.Child("lastReroll");
             return new GameStateData
             {
                 FirstPlayer = ParseRole(snap.Child("firstPlayer").Value),
                 CurrentPlayer = ParseRole(snap.Child("currentPlayer").Value),
                 Phase = ParsePhase(snap.Child("phase").Value as string),
                 PendingDice = pendingSnap.Exists ? DiceFromWire(pendingSnap) : null,
+                LastReroll = rerollSnap.Exists ? RerollFromWire(rerollSnap) : null,
                 Fields = new[]
                 {
                     FieldFromWire(snap.Child("fields").Child("0")),
@@ -489,6 +499,13 @@ namespace DiceBattle.Managers
             Value = Convert.ToInt32(d.Child("value").Value),
             IsSpecial = Convert.ToBoolean(d.Child("special").Value),
             Owner = ParseRole(d.Child("owner").Value),
+        };
+
+        private static RerollData RerollFromWire(DataSnapshot d) => new RerollData
+        {
+            Value = Convert.ToInt32(d.Child("value").Value),
+            IsSpecial = Convert.ToBoolean(d.Child("special").Value),
+            Picked = Convert.ToBoolean(d.Child("picked").Value),
         };
 
         private static string RoleString(PlayerId p) => p == PlayerId.One ? "One" : "Two";

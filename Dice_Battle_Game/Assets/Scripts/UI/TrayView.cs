@@ -30,6 +30,12 @@ namespace DiceBattle.UI
         private Coroutine _co;
         private bool _rolling;
 
+        // 현재 트레이 주사위가 어느 진영(내 턴=좌측/Player, 상대 턴=우측/Ai)인지.
+        // ShowPending이 세팅하고, 리롤 연출(RollCandidateRoutine/ResolvePickRoutine/
+        // FinalizeCurrent)이 이 값을 따라간다 — 원래는 사람 전용 기능이라 좌측(Player)으로
+        // 고정돼 있었지만, 친선대전 상대 턴 리롤을 재현하려면 우측(Ai)도 지원해야 한다.
+        private bool _towardLeft = true;
+
         /// <summary>리롤 선택 중 주사위를 클릭했을 때(0=기존, 1=리롤 후보).</summary>
         public event Action<int> DiceClicked;
 
@@ -163,6 +169,7 @@ namespace DiceBattle.UI
             if (!ReferenceEquals(die, _last))
             {
                 _last = die;
+                _towardLeft = towardLeft;
                 StopAnim();
                 ResetDie(1);
                 _rolling = true; // StartCoroutine 전에 세워야 같은 프레임의 입력도 막힌다
@@ -171,8 +178,9 @@ namespace DiceBattle.UI
         }
 
         /// <summary>
-        /// 리롤 후보를 트레이 가운데에서 굴려 기존 주사위 우측에 붙인다.
-        /// 완료 후 두 주사위가 클릭 가능해진다(리롤은 플레이어 전용이라 항상 좌측 진영).
+        /// 리롤 후보를 트레이 가운데에서 굴려 기존 주사위 옆(진영 안쪽)에 붙인다.
+        /// 완료 후 두 주사위가 클릭 가능해진다. 진영은 직전 <see cref="ShowPending"/>이
+        /// 정한 쪽을 그대로 따른다 — 내 턴이면 좌측/Player, 친선대전 상대 턴 재현이면 우측/Ai.
         /// </summary>
         public IEnumerator RollCandidateRoutine(Dice candidate)
         {
@@ -181,17 +189,22 @@ namespace DiceBattle.UI
             // 첫 주사위의 굴림 연출이 아직 돌고 있을 수 있으므로 먼저 최종 상태로 확정한다.
             FinalizeCurrent();
 
+            DiceSide side = _towardLeft ? DiceSide.Player : DiceSide.Ai;
+            float candidateX = _towardLeft
+                ? -_slideX + UiTheme.RerollPairGap
+                : _slideX - UiTheme.RerollPairGap;
+
             var rt = RectOf(1);
             rt.anchoredPosition = Vector2.zero;
             rt.localScale = Vector3.one;
 
-            yield return RollFlicks(_dice[1], DiceSide.Player);
+            yield return RollFlicks(_dice[1], side);
 
-            _dice[1].SetDie(candidate.Value, candidate.IsSpecial, DiceSide.Player);
+            _dice[1].SetDie(candidate.Value, candidate.IsSpecial, side);
             rt.localScale = Vector3.one;
             yield return new WaitForSeconds(0.2f);
 
-            yield return Move(rt, Vector2.zero, new Vector2(-_slideX + UiTheme.RerollPairGap, 0f), 0.35f);
+            yield return Move(rt, Vector2.zero, new Vector2(candidateX, 0f), 0.35f);
 
             SetPickable(true);
         }
@@ -222,7 +235,7 @@ namespace DiceBattle.UI
             Vector2 dropFrom = droppedRect.anchoredPosition;
             Vector2 dropTo = new Vector2(dropFrom.x, -(UiTheme.TrayHeight * 0.5f + UiTheme.CellSize * 2f));
             Vector2 pickedFrom = pickedRect.anchoredPosition;
-            Vector2 pickedTo = new Vector2(-_slideX, 0f);
+            Vector2 pickedTo = new Vector2(_towardLeft ? -_slideX : _slideX, 0f);
 
             // 낙하와 좌측 정렬을 동시에 진행.
             float t = 0f;
@@ -258,9 +271,10 @@ namespace DiceBattle.UI
             StopAnim();
             if (_last == null) return;
 
-            _dice[0].SetDie(_last.Value, _last.IsSpecial, DiceSide.Player);
+            DiceSide side = _towardLeft ? DiceSide.Player : DiceSide.Ai;
+            _dice[0].SetDie(_last.Value, _last.IsSpecial, side);
             var rt = RectOf(0);
-            rt.anchoredPosition = new Vector2(-_slideX, 0f);
+            rt.anchoredPosition = new Vector2(_towardLeft ? -_slideX : _slideX, 0f);
             rt.localScale = Vector3.one;
         }
 

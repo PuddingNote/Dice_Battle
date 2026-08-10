@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using DiceBattle.Core;
 using DiceBattle.AI;
@@ -40,6 +41,12 @@ namespace DiceBattle.UI
         private bool _adRerollAvailable;
         private Dice _rerollCandidate;
 
+        /// <summary>
+        /// 이번 배치 직전에 리롤이 있었다면 그 기록(친선대전 전송용, 다음 PushFriendlyState가
+        /// 소비하고 비운다). AI 대전에서는 아무도 읽지 않으므로 그냥 버려진다.
+        /// </summary>
+        private RerollData _pendingRerollRecord;
+
         // AI 대전은 항상 One. 친선대전은 방장이면 One, 참가자면 Two — StartFriendlyMatch가
         // 지정한다. readonly가 아닌 이유는 그것 하나뿐이다(StartMatch는 항상 One으로 되돌린다).
         private PlayerId _human = PlayerId.One;
@@ -51,6 +58,13 @@ namespace DiceBattle.UI
 
         /// <summary>친선대전 방 정보(코드·방장 여부). AI 대전에서는 null.</summary>
         private RoomInfo _friendlyRoom;
+
+        // 상대의 수가 애니메이션 재생 속도보다 빨리 연달아 도착할 수 있다(제거를 유발한
+        // 배치 직후 곧바로 추가 배치가 오는 경우 등). 순서를 잃지 않도록 큐에 쌓아 하나씩
+        // 순서대로 재현한다 — 동시에 여러 StartCoroutine이 _game을 서로 다른 시점으로
+        // 되돌리는 경쟁 상태를 막는다.
+        private readonly Queue<GameStateData> _remoteStateQueue = new Queue<GameStateData>();
+        private bool _remoteReplayRunning;
 
         /// <summary>이 판에서 "나"에 해당하는 PlayerId. AI 대전은 항상 One.</summary>
         public PlayerId MyPlayerId => _human;
@@ -201,6 +215,9 @@ namespace DiceBattle.UI
             _rerollAvailable = true; // 판마다 1회 충전
             _adRerollAvailable = true; // 광고로 얻는 추가 리롤도 판당 1회
             _rerollCandidate = null;
+            _pendingRerollRecord = null;
+            _remoteStateQueue.Clear();
+            _remoteReplayRunning = false;
             _board.ClearFx();
             _board.HideResult();
             _board.SetTrayPickable(false);
@@ -264,11 +281,15 @@ namespace DiceBattle.UI
             _rerollAvailable = true;
             _adRerollAvailable = false; // 친선대전은 광고 리롤 트랙 자체를 안 씀(2번 작업)
             _rerollCandidate = null;
+            _pendingRerollRecord = null;
+            _remoteStateQueue.Clear();
+            _remoteReplayRunning = false;
             _board.ClearFx();
             _board.HideResult();
             _board.SetTrayPickable(false);
             _board.SetRerollInteractable(false);
             _board.SetOpponentRerollVisible(true);
+            _board.SetOpponentRerollUsed(false);
             _board.SetPerspective(_human);
             _board.SetHeaderText("친선대전");
 
@@ -301,6 +322,9 @@ namespace DiceBattle.UI
             if (!FriendlyMode) return;
 
             var data = GameStateSnapshot.Capture(_game.State);
+            data.LastReroll = _pendingRerollRecord;
+            _pendingRerollRecord = null; // 이번 배치에 한 번만 실린다 — 다음 턴으로 새지 않게 비운다
+
             FriendlyRoomService.PushState(_friendlyRoom.Code, data, ok =>
             {
                 if (!ok) Debug.LogError("[Friendly] 상태 전송 실패");
@@ -320,13 +344,108 @@ namespace DiceBattle.UI
         }
 
         /// <summary>
-        /// 상대가 둔 수(또는 방장의 첫 상태)가 도착했을 때. 로컬에서 아무것도 다시 계산하지
-        /// 않고 받은 상태로 그대로 갈아 끼운 뒤 스냅 렌더링한다(연출 없음 — v1 결정사항).
+        /// 상대가 둔 수(또는 방장의 첫 상태)가 도착했을 때. Firebase 리스너는 내가 방금 쓴
+        /// 값도 그대로 되돌려주는데, 그 "메아리" 판별은 실제로 재현을 시작하는 시점의
+        /// 최신 상태 기준이어야 하므로 여기서는 큐에 쌓기만 한다(판별은 <see cref="DrainRemoteStateQueue"/>).
         /// </summary>
         private void OnRemoteStateReceived(GameStateData data)
         {
             if (!FriendlyMode) return; // 이미 판을 나간 뒤 늦게 도착한 이벤트 방어
 
+            _remoteStateQueue.Enqueue(data);
+            if (!_remoteReplayRunning) StartCoroutine(DrainRemoteStateQueue());
+        }
+
+        /// <summary>
+        /// 큐에 쌓인 원격 상태를 순서대로 하나씩 재현한다. 상대가 제거를 유발하는 배치
+        /// 직후 곧바로 추가 배치까지 마치면 두 상태가 내 애니메이션이 끝나기 전에 연달아
+        /// 도착할 수 있는데, 그때마다 바로 StartCoroutine을 걸면 여러 재현이 동시에
+        /// _game을 서로 다른 시점으로 되돌리는 경쟁 상태가 생긴다 — 그래서 한 번에 하나씩만
+        /// 처리한다.
+        /// </summary>
+        private IEnumerator DrainRemoteStateQueue()
+        {
+            _remoteReplayRunning = true;
+            while (_remoteStateQueue.Count > 0)
+            {
+                GameStateData data = _remoteStateQueue.Dequeue();
+                GameStateData before = GameStateSnapshot.Capture(_game.State);
+                if (!GameStateSnapshot.StatesEqual(before, data))
+                    yield return StartCoroutine(RemoteReplayRoutine(before, data));
+            }
+            _remoteReplayRunning = false;
+        }
+
+        /// <summary>
+        /// 상대의 수를 직전 상태와 diff해 재현한다. <b>Core.DiceGame의 규칙 메서드는 절대
+        /// 다시 부르지 않는다</b> — 상대가 실제로 받은 결과(data)가 이미 있으니, 로컬에서
+        /// 재실행하면(특히 리롤은 난수) 상대가 본 것과 어긋날 수 있다. diff가 애매해 설명이
+        /// 안 되는 모양이면(예: 참가자의 최초 수신) 연출 없이 스냅으로만 반영한다 — 정확한
+        /// 상태 반영이 연출보다 우선이다.
+        /// </summary>
+        private IEnumerator RemoteReplayRoutine(GameStateData before, GameStateData data)
+        {
+            LockInput();
+            yield return _board.WaitForTrayIdle();
+
+            if (data.LastReroll != null) _board.SetOpponentRerollUsed(true);
+
+            var diff = RemoteMoveDiff.Compute(before, data);
+            if (diff == null)
+            {
+                ApplyRemoteState(data);
+                yield break;
+            }
+
+            if (data.LastReroll != null)
+            {
+                var candidate = new Dice(data.LastReroll.Value, data.LastReroll.IsSpecial, diff.Placed.Owner);
+                yield return StartCoroutine(_board.RollCandidateRoutine(candidate));
+                yield return StartCoroutine(_board.ResolvePickRoutine(data.LastReroll.Picked ? 1 : 0));
+            }
+
+            DiceSide placedSide = SideOf(diff.Placed.Owner);
+            if (diff.RemovalOccurred)
+            {
+                int preCount = diff.PreRemoval.Length;
+                var preValues = new int[preCount];
+                var preSides = new DiceSide[preCount];
+                var preSpecial = new bool[preCount];
+                for (int i = 0; i < preCount; i++)
+                {
+                    preValues[i] = diff.PreRemoval[i].Value;
+                    preSpecial[i] = diff.PreRemoval[i].IsSpecial;
+                    preSides[i] = SideOf(diff.PreRemoval[i].Owner);
+                }
+                yield return StartCoroutine(_board.RemovalFxRoutine(
+                    diff.PlaceField, diff.Line, diff.Placed.Value, diff.Placed.IsSpecial, placedSide,
+                    diff.InsertIndex, diff.Placed.IsSpecial,
+                    diff.RemovedField, preValues, preSides, preSpecial, diff.Removed));
+            }
+            else
+            {
+                AudioManager.PlayDicePlace();
+                int shiftCount = diff.Shifted.Length;
+                var shiftValues = new int[shiftCount];
+                var shiftSides = new DiceSide[shiftCount];
+                var shiftSpecial = new bool[shiftCount];
+                for (int i = 0; i < shiftCount; i++)
+                {
+                    shiftValues[i] = diff.Shifted[i].Value;
+                    shiftSpecial[i] = diff.Shifted[i].IsSpecial;
+                    shiftSides[i] = SideOf(diff.Shifted[i].Owner);
+                }
+                yield return StartCoroutine(_board.PlaceGroupedFxRoutine(
+                    diff.PlaceField, diff.Line, diff.InsertIndex, diff.Placed.Value, diff.Placed.IsSpecial,
+                    placedSide, shiftValues, shiftSides, shiftSpecial));
+            }
+
+            ApplyRemoteState(data);
+        }
+
+        /// <summary>받은 상태를 확정 반영(연출 없이). 연출 재생 뒤 마무리, 또는 diff 실패 시 폴백 경로 공용.</summary>
+        private void ApplyRemoteState(GameStateData data)
+        {
             GameState restored = GameStateSnapshot.Restore(data);
             _game = new DiceGame(DefaultRoller(), restored);
             _board.Render(_game.State);
@@ -536,6 +655,15 @@ namespace DiceBattle.UI
 
         private IEnumerator ResolveRerollPick(int index)
         {
+            // 친선대전 상대에게 보여줄 리롤 재현용 기록. 다음 PushFriendlyState가 실어 보내고
+            // 비운다 — 여기서는 무엇을 골랐는지만 남겨 두면 된다.
+            _pendingRerollRecord = new RerollData
+            {
+                Value = _rerollCandidate.Value,
+                IsSpecial = _rerollCandidate.IsSpecial,
+                Picked = index == 1,
+            };
+
             // 1 = 새로 굴린 후보를 선택 → 대기 주사위 교체. 0이면 기존 유지.
             if (index == 1) _game.ApplyReroll(_rerollCandidate);
             _rerollCandidate = null;

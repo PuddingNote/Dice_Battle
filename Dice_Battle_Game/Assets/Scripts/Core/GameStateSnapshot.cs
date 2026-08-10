@@ -20,6 +20,21 @@ namespace DiceBattle.Core
         public LineData[] Lines;
     }
 
+    /// <summary>
+    /// 이번 턴 배치 직전에 리롤이 있었는지(연출 재현 전용 — 게임 규칙에는 영향 없다).
+    /// <see cref="GameState"/>는 이 정보를 담지 않는다(리롤 결과는 이미 PendingDice에
+    /// 녹아 있어 규칙상 필요 없음) — 그래서 전송 시점에만 부가로 실어 보낸다.
+    /// </summary>
+    public sealed class RerollData
+    {
+        /// <summary>리롤로 굴린 후보 주사위의 값/특수 여부.</summary>
+        public int Value;
+        public bool IsSpecial;
+
+        /// <summary>후보를 골랐는가(true=후보로 교체, false=기존 유지).</summary>
+        public bool Picked;
+    }
+
     /// <summary><see cref="GameState"/> 전체의 순수 데이터 표현.</summary>
     public sealed class GameStateData
     {
@@ -32,6 +47,13 @@ namespace DiceBattle.Core
 
         /// <summary>인덱스 0 = PlayerId.One의 필드, 1 = PlayerId.Two의 필드.</summary>
         public FieldData[] Fields;
+
+        /// <summary>
+        /// 직전에 놓인 주사위가 이번 턴 중 리롤을 거쳤다면 그 기록(없으면 null).
+        /// 친선대전 상대 턴 연출 재현에만 쓰인다 — <see cref="GameStateSnapshot.Restore"/>는
+        /// 이 값을 읽지 않는다(GameState 규칙과 무관).
+        /// </summary>
+        public RerollData LastReroll;
     }
 
     /// <summary>
@@ -113,5 +135,44 @@ namespace DiceBattle.Core
 
         private static Dice FromDto(DiceData d)
             => d == null ? null : new Dice(d.Value, d.IsSpecial, d.Owner);
+
+        /// <summary>
+        /// 두 스냅샷이 진행 상태 기준으로 완전히 같은가. <see cref="GameStateData.LastReroll"/>은
+        /// 일부러 비교하지 않는다 — 내가 방금 쓴 값이 그대로 되돌아온 "메아리"인지 판별하는
+        /// 용도인데, 로컬에서 새로 캡처한 쪽은 이 필드를 채우지 않으므로 포함하면 항상 달라진다.
+        /// </summary>
+        public static bool StatesEqual(GameStateData a, GameStateData b)
+        {
+            if (a == null || b == null) return a == b;
+            if (a.FirstPlayer != b.FirstPlayer) return false;
+            if (a.CurrentPlayer != b.CurrentPlayer) return false;
+            if (a.Phase != b.Phase) return false;
+            if (!DiceEqual(a.PendingDice, b.PendingDice)) return false;
+
+            for (int p = 0; p < 2; p++)
+            {
+                var fa = a.Fields[p];
+                var fb = b.Fields[p];
+                for (int i = 0; i < Field.LineCount; i++)
+                    if (!DiceListEqual(fa.Lines[i].Dice, fb.Lines[i].Dice)) return false;
+            }
+            return true;
+        }
+
+        private static bool DiceListEqual(DiceData[] a, DiceData[] b)
+        {
+            int la = a?.Length ?? 0;
+            int lb = b?.Length ?? 0;
+            if (la != lb) return false;
+            for (int i = 0; i < la; i++)
+                if (!DiceEqual(a[i], b[i])) return false;
+            return true;
+        }
+
+        private static bool DiceEqual(DiceData a, DiceData b)
+        {
+            if (a == null || b == null) return a == b;
+            return a.Value == b.Value && a.IsSpecial == b.IsSpecial && a.Owner == b.Owner;
+        }
     }
 }

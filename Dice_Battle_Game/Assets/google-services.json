@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "694183397592",
+    "project_id": "dicebattle-ea31e",
+    "storage_bucket": "dicebattle-ea31e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:694183397592:android:8eac20274482f766832fad",
+        "android_client_info": {
+          "package_name": "com.onepixel.dicebattle"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkU17MKW81X7gD1uTl69SaGjt0jV2GsvQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

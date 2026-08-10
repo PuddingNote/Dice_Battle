@@ -3,7 +3,8 @@
     "rootNamespace": "DiceBattle.EditorTools",
     "references": [
         "DiceBattle.Core",
-        "DiceBattle.UI"
+        "DiceBattle.UI",
+        "DiceBattle.Managers"
     ],
     "includePlatforms": [
         "Editor"

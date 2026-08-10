@@ -84,3 +84,12 @@ crashlytics-build.properties
 # OS files
 .DS_Store
 Thumbs.db
+
+# Firebase SDK가 macOS/Linux 데스크톱 에디터 테스트용으로 같이 받아오는 네이티브
+# 바이너리. 이 프로젝트는 Windows 에디터 + Android 빌드만 쓰므로 필요 없다.
+# FirebaseCppApp-*.bundle 하나가 100MB를 넘어 GitHub 푸시 자체가 막힌 적이 있다
+# (2026-08-10) — Windows용 .dll은 그대로 커밋 대상이니 이 규칙에 걸리지 않는다.
+/[Aa]ssets/Firebase/Plugins/x86_64/*.bundle
+/[Aa]ssets/Firebase/Plugins/x86_64/*.bundle.meta
+/[Aa]ssets/Firebase/Plugins/x86_64/*.so
+/[Aa]ssets/Firebase/Plugins/x86_64/*.so.meta

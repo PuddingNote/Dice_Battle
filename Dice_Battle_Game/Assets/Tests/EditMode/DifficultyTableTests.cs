@@ -223,6 +223,55 @@ namespace DiceBattle.Tests
             Assert.AreEqual(6, update.UnlockedAfter);
         }
 
+        // ---- 연승 보너스 ----
+
+        /// <summary>해금선 100 간격, 승점 = 레벨×10, 패점 = 레벨×5, 연승 보너스 = 레벨×3.</summary>
+        private static DifficultyTable StreakPointsTable()
+        {
+            var tiers = new List<DifficultyTier>();
+            for (int i = 0; i < DifficultyTable.LevelCount; i++)
+            {
+                int level = i + 1;
+                tiers.Add(new DifficultyTier(level, i * 100, level * 10, level * 5, level * 3));
+            }
+            return new DifficultyTable(tiers);
+        }
+
+        [Test]
+        public void ApplyMatch_Adds_The_Streak_Bonus_When_The_Prior_Match_Was_Also_A_Win()
+        {
+            var table = StreakPointsTable();
+
+            // Lv3: 승점 30, 연승 보너스 9. priorStreak=1 → 직전 판도 이겼다.
+            var update = table.ApplyMatch(score: 100, highestScore: 100, playedLevel: 3,
+                PlayerMatchResult.Win, priorStreak: 1);
+
+            Assert.AreEqual(139, update.Score, "승점 30 + 연승 보너스 9.");
+        }
+
+        [Test]
+        public void ApplyMatch_Skips_The_Streak_Bonus_On_The_First_Win_Of_A_Streak()
+        {
+            var table = StreakPointsTable();
+
+            // priorStreak=0 → 직전 판이 승리가 아니었다(방금 연승이 끊겼거나 첫 판).
+            var update = table.ApplyMatch(score: 100, highestScore: 100, playedLevel: 3,
+                PlayerMatchResult.Win, priorStreak: 0);
+
+            Assert.AreEqual(130, update.Score, "연승 보너스 없이 승점만.");
+        }
+
+        [Test]
+        public void ApplyMatch_Never_Applies_The_Streak_Bonus_To_A_Loss()
+        {
+            // 연승 중에 지면 그 판은 그냥 패배다. priorStreak가 커도 손해가 줄면 안 된다.
+            var table = StreakPointsTable();
+            var update = table.ApplyMatch(score: 100, highestScore: 100, playedLevel: 3,
+                PlayerMatchResult.Lose, priorStreak: 9);
+
+            Assert.AreEqual(85, update.Score, "Lv3 패점 15만 빠져야 한다.");
+        }
+
         // ---- 공식 생성기 ----
 
         [Test]
@@ -309,6 +358,36 @@ namespace DiceBattle.Tests
                 Assert.AreEqual(b[level].WinPoints, a[level].WinPoints, $"Lv{level} 승점");
                 Assert.AreEqual(b[level].LosePoints, a[level].LosePoints, $"Lv{level} 패점");
             }
+        }
+
+        [Test]
+        public void Curve_Streak_Bonus_Is_Zero_Without_A_Ratio()
+        {
+            // 비율을 안 주면(0) 보너스 자체가 없어야 한다.
+            var table = new DifficultyCurve(20d, 1.35d, 0.45d,
+                winsPerTier: 17d, pointRoundTo: 10, unlockRoundTo: 100, streakBonusRatio: 0d).Build();
+
+            foreach (var tier in table.Tiers)
+                Assert.AreEqual(0, tier.StreakBonusPoints, $"Lv{tier.Level}");
+        }
+
+        [Test]
+        public void Curve_Streak_Bonus_Scales_With_Win_Points()
+        {
+            // 승점에 비례해야 손익분기 승률(3장)이 흔들리지 않는다 — docs/Difficulty.md 6장.
+            var table = new DifficultyCurve(20d, 1.35d, 0.45d,
+                winsPerTier: 21d, pointRoundTo: 10, unlockRoundTo: 100, streakBonusRatio: 0.5d).Build();
+
+            foreach (var tier in table.Tiers)
+            {
+                Assert.Greater(tier.StreakBonusPoints, 0, $"Lv{tier.Level}");
+                Assert.LessOrEqual(tier.StreakBonusPoints, tier.WinPoints, $"Lv{tier.Level}");
+            }
+
+            // 뒤로 갈수록 승점이 커지므로 보너스도 같이 커져야 한다.
+            for (int level = DifficultyTable.MinLevel + 1; level <= DifficultyTable.MaxLevel; level++)
+                Assert.GreaterOrEqual(table[level].StreakBonusPoints,
+                    table[level - 1].StreakBonusPoints, $"Lv{level}");
         }
 
         [Test]

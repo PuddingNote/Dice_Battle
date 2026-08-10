@@ -97,9 +97,12 @@ namespace DiceBattle.UI
 
         /// <summary>한 판 결과를 반영하고 무엇이 바뀌었는지 돌려준다.</summary>
         /// <param name="playedLevel">그 판을 시작할 때 고정된 난이도.</param>
-        public static ProgressUpdate ApplyResult(PlayerMatchResult result, int playedLevel)
+        /// <param name="priorStreak">이 판을 시작하기 전까지의 연승 수. 연승 보너스 판정용.</param>
+        public static ProgressUpdate ApplyResult(
+            PlayerMatchResult result, int playedLevel, int priorStreak = 0)
         {
-            ProgressUpdate update = Table.ApplyMatch(Score, HighestScore, playedLevel, result);
+            ProgressUpdate update =
+                Table.ApplyMatch(Score, HighestScore, playedLevel, result, priorStreak);
             Score = update.Score;
             HighestScore = update.HighestScore;
             return update;

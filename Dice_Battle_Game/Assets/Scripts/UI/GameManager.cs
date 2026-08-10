@@ -48,6 +48,12 @@ namespace DiceBattle.UI
         /// <summary>직전 판의 승패. 부가 버튼이 무엇이 될지 이 값으로 갈린다.</summary>
         private PlayerMatchResult _lastResultKind;
 
+        /// <summary>
+        /// 이번 판의 점수에 실제로 얹힌 연승 보너스(없으면 0). 점수 줄 문구에 밝힌다 —
+        /// 승점이 왜 평소보다 큰지 표시가 없으면 계산이 틀렸다고 오해하기 쉽다.
+        /// </summary>
+        private int _streakBonusApplied;
+
         private ScreenId _screen = ScreenId.Menu;
 
         /// <summary>
@@ -382,10 +388,19 @@ namespace DiceBattle.UI
 
             PlayerMatchResult result = RankSystem.ResultFor(outcome, Human);
 
+            // 연승 보너스는 "이 판을 시작하기 전까지의 연승"으로 판정한다. 전적이 아직
+            // 이번 판을 반영하기 전이라 지금 읽어야 그 값이 된다 — PlayerStats.ApplyMatch가
+            // 지나가면 이미 이번 판이 더해져 첫 승리에도 보너스가 붙어 버린다.
+            int priorStreak = PlayerStats.CurrentStreak;
+
             // 정산은 반드시 "그 판을 시작한 난이도"로 한다. 지금 해금된 난이도로 하면
             // 낮은 난이도를 골라 놓고 높은 난이도의 점수를 받게 된다.
-            ProgressUpdate update = PlayerProgress.ApplyResult(result, _controller.Level);
+            ProgressUpdate update = PlayerProgress.ApplyResult(result, _controller.Level, priorStreak);
             _lastResult = update; // "계속하기"가 어디로 갈지 이 값으로 갈린다
+
+            _streakBonusApplied = result == PlayerMatchResult.Win && priorStreak >= 1
+                ? PlayerProgress.Tier(_controller.Level).StreakBonusPoints
+                : 0;
 
             // 전적도 같은 난이도 기준으로 누적한다. 점수 정산과 어긋나면 안 된다.
             PlayerStats.ApplyMatch(result, _controller.Level, _controller.HumanRemovedThisMatch);
@@ -457,7 +472,9 @@ namespace DiceBattle.UI
             else
             {
                 string sign = update.Delta > 0 ? "+" : "";
-                line = $"Lv.{_controller.Level}   점수 {sign}{update.Delta}  →  {update.Score}";
+                // 승점만 봐서는 왜 평소보다 큰지 알 수 없다. 보너스가 섞여 있으면 밝힌다.
+                string streak = _streakBonusApplied > 0 ? $"  (연승 +{_streakBonusApplied})" : "";
+                line = $"Lv.{_controller.Level}   점수 {sign}{update.Delta}{streak}  →  {update.Score}";
             }
 
             // 2배를 받았으면 그 사실을 적는다. 액수만 바뀌면 광고가 먹혔는지 알 수 없다.

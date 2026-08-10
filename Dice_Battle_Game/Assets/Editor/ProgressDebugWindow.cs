@@ -94,7 +94,7 @@ namespace DiceBattle.EditorTools
             {
                 DifficultyTier tier = table[level];
                 string label = $"Lv.{level}   해금 {tier.UnlockScore:N0}   " +
-                               $"승 +{tier.WinPoints}  패 -{tier.LosePoints}";
+                               $"승 +{tier.WinPoints}(연승 +{tier.StreakBonusPoints})  패 -{tier.LosePoints}";
 
                 if (GUILayout.Button(label))
                     Apply(tier.UnlockScore, alsoLowerHighest: true);

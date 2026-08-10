@@ -15,18 +15,26 @@ namespace DiceBattle.Core
         /// <summary>이 난이도를 해금하는 데 필요한 <b>최고 달성 점수</b>.</summary>
         public int UnlockScore { get; }
 
-        /// <summary>승리 시 획득 점수.</summary>
+        /// <summary>승리 시 획득 점수(연승 보너스 제외).</summary>
         public int WinPoints { get; }
 
         /// <summary>패배 시 차감량. <b>양수로 보관</b>하고 적용할 때 빼낸다.</summary>
         public int LosePoints { get; }
 
-        public DifficultyTier(int level, int unlockScore, int winPoints, int losePoints)
+        /// <summary>
+        /// 직전 판도 이겼을 때(연승 2연째부터) 추가로 얹는 점수.
+        /// <see cref="WinPoints"/>에 비례해 미리 반올림해 둔 값이다 — docs/Difficulty.md 6장.
+        /// </summary>
+        public int StreakBonusPoints { get; }
+
+        public DifficultyTier(int level, int unlockScore, int winPoints, int losePoints,
+            int streakBonusPoints = 0)
         {
             Level = level;
             UnlockScore = unlockScore < 0 ? 0 : unlockScore;
             WinPoints = winPoints < 0 ? 0 : winPoints;
             LosePoints = losePoints < 0 ? 0 : losePoints;
+            StreakBonusPoints = streakBonusPoints < 0 ? 0 : streakBonusPoints;
         }
 
         /// <summary>
@@ -34,12 +42,13 @@ namespace DiceBattle.Core
         ///
         /// 이 값이 단계마다 크게 달라지면 특정 난이도만 파밍 구간이 되므로,
         /// 밸런스를 볼 때 전 단계가 비슷한 값인지 확인하는 용도다.
-        /// 게임 로직에서는 쓰지 않는다.
+        /// 게임 로직에서는 쓰지 않는다. <b>연승 보너스는 넣지 않는다</b> — 보너스는
+        /// 연승 중에만 붙어 손익분기 자체를 흔들지 않고, 넣으면 오히려 오해를 부른다.
         /// </summary>
         public double BreakEvenWinRate
             => WinPoints + LosePoints == 0 ? 0d : (double)LosePoints / (WinPoints + LosePoints);
 
         public override string ToString()
-            => $"Lv{Level} 해금 {UnlockScore} / 승 +{WinPoints} / 패 -{LosePoints}";
+            => $"Lv{Level} 해금 {UnlockScore} / 승 +{WinPoints} / 연승 +{StreakBonusPoints} / 패 -{LosePoints}";
     }
 }

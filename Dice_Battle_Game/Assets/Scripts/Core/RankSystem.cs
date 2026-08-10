@@ -23,21 +23,32 @@ namespace DiceBattle.Core
         public const int StartScore = 0;
         public const int MinScore = 0;
 
-        /// <summary>이번 판의 점수 증감(패배는 음수).</summary>
-        public static int DeltaFor(PlayerMatchResult result, DifficultyTier tier)
+        /// <summary>
+        /// 이번 판의 점수 증감(패배는 음수).
+        /// </summary>
+        /// <param name="priorStreak">
+        /// <b>이번 판을 시작하기 전까지</b>의 연승 수. 0이면 직전 판이 승리가 아니었다는 뜻이고,
+        /// 1 이상이면 직전 판도 이겨서 이번 승리에 연승 보너스가 붙는다(docs/Difficulty.md 6장).
+        /// 이 판 자체의 결과는 포함하지 않는다 — 포함하면 첫 승리에도 보너스가 붙어 버린다.
+        /// </param>
+        public static int DeltaFor(PlayerMatchResult result, DifficultyTier tier, int priorStreak = 0)
         {
             switch (result)
             {
-                case PlayerMatchResult.Win: return tier.WinPoints;
+                case PlayerMatchResult.Win:
+                    return priorStreak >= 1
+                        ? tier.WinPoints + tier.StreakBonusPoints
+                        : tier.WinPoints;
                 case PlayerMatchResult.Lose: return -tier.LosePoints;
                 default: return 0;
             }
         }
 
         /// <summary>결과를 반영한 새 점수(하한 <see cref="MinScore"/> 적용).</summary>
-        public static int ApplyResult(int score, PlayerMatchResult result, DifficultyTier tier)
+        public static int ApplyResult(
+            int score, PlayerMatchResult result, DifficultyTier tier, int priorStreak = 0)
         {
-            int next = score + DeltaFor(result, tier);
+            int next = score + DeltaFor(result, tier, priorStreak);
             return next < MinScore ? MinScore : next;
         }
 

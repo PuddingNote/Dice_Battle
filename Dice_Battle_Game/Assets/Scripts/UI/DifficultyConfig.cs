@@ -52,6 +52,9 @@ namespace DiceBattle.UI
 
             [Tooltip("해금선의 반올림 단위")]
             public int unlockRoundTo;
+
+            [Tooltip("연승 보너스 = 승점 × 이 값(직전 판도 이겼을 때만). 0이면 보너스 없음")]
+            [Range(0f, 2f)] public float streakBonusRatio;
         }
 
         [Tooltip("Lv1~Lv10 순서. 칸이 모자라면 그 레벨은 코드 기본값을 사용한다.")]
@@ -75,9 +78,10 @@ namespace DiceBattle.UI
             baseWinPoints = 20f,
             growth = 1.35f,
             loseRatio = 0.45f,
-            winsPerTier = 17f, // Lv.10까지 약 539판 ≈ 18시간(판당 2분 기준)
+            winsPerTier = 21f, // Lv.10까지 약 451판 ≈ 15시간(연승 보너스 50% 반영, 판당 2분 기준)
             pointRoundTo = 10,
             unlockRoundTo = 100,
+            streakBonusRatio = 0.5f,
         };
 
         public bool TryGet(int level, out LevelSettings settings)
@@ -128,7 +132,7 @@ namespace DiceBattle.UI
         private DifficultyCurve ToCurve()
             => DifficultyCurve.FromSingle(scoreCurve.baseWinPoints, scoreCurve.growth,
                 scoreCurve.loseRatio, scoreCurve.winsPerTier,
-                scoreCurve.pointRoundTo, scoreCurve.unlockRoundTo);
+                scoreCurve.pointRoundTo, scoreCurve.unlockRoundTo, scoreCurve.streakBonusRatio);
 
         /// <summary>
         /// 인접 단계의 승리 점수가 같아지면 경고한다.
@@ -154,12 +158,12 @@ namespace DiceBattle.UI
 
             var sb = new System.Text.StringBuilder();
             sb.AppendLine("[DifficultyConfig] 난이도 표");
-            sb.AppendLine(" Lv |   해금선 |    승 |    패 | 분기승률");
+            sb.AppendLine(" Lv |   해금선 |    승 | 연승보너스 |    패 | 분기승률");
 
             foreach (DifficultyTier tier in table.Tiers)
             {
                 sb.AppendLine($" {tier.Level,2} | {tier.UnlockScore,8} | {tier.WinPoints,5} | " +
-                              $"{tier.LosePoints,5} | {tier.BreakEvenWinRate,7:P1}");
+                              $"{tier.StreakBonusPoints,10} | {tier.LosePoints,5} | {tier.BreakEvenWinRate,7:P1}");
             }
 
             Debug.Log(sb.ToString());

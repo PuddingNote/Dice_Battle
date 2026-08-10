@@ -22,6 +22,13 @@ namespace DiceBattle.UI
         /// <summary>전적이 저장된 적이 있는가(튜토리얼 재노출 방지용).</summary>
         public static bool HasRecord => PlayerPrefs.HasKey(StatsKey);
 
+        /// <summary>
+        /// 지금까지 이어지고 있는 연승. <b>이번에 끝난 판은 포함하지 않는다</b> —
+        /// <see cref="ApplyMatch"/>를 부르기 전에 읽어야 "직전 판까지의 연승"이 된다.
+        /// 연승 보너스 판정에 쓴다(docs/Difficulty.md 6장).
+        /// </summary>
+        public static int CurrentStreak => Data.currentStreak;
+
         /// <summary>한 판 결과를 누적하고 저장한다.</summary>
         /// <param name="playedLevel">그 판을 시작할 때 고정된 난이도.</param>
         /// <param name="removedDice">그 판에서 내가 제거한 주사위 개수.</param>

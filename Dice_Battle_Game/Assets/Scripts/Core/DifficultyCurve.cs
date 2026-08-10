@@ -44,8 +44,14 @@ namespace DiceBattle.Core
         /// </summary>
         public int UnlockRoundTo { get; }
 
+        /// <summary>
+        /// 연승 보너스 = 승점 × 이 비율(직전 판도 이겼을 때만, 반올림해 미리 굳혀 둔다).
+        /// 승점에 비례해야 손익분기 승률(3장)이 흔들리지 않는다 — docs/Difficulty.md 6장.
+        /// </summary>
+        public double StreakBonusRatio { get; }
+
         public DifficultyCurve(double baseWinPoints, double growth, double loseRatio,
-            double winsPerTier, int pointRoundTo, int unlockRoundTo)
+            double winsPerTier, int pointRoundTo, int unlockRoundTo, double streakBonusRatio = 0)
         {
             BaseWinPoints = baseWinPoints;
             Growth = growth;
@@ -53,6 +59,7 @@ namespace DiceBattle.Core
             WinsPerTier = winsPerTier;
             PointRoundTo = pointRoundTo;
             UnlockRoundTo = unlockRoundTo;
+            StreakBonusRatio = streakBonusRatio;
         }
 
         /// <summary>
@@ -60,12 +67,12 @@ namespace DiceBattle.Core
         /// <b>에셋의 값과 같게 유지할 것</b> — 달라지면 폴백이 걸렸을 때
         /// 전혀 다른 게임이 되고, 그게 걸렸다는 사실도 알아채기 어렵다.
         ///
-        /// <see cref="WinsPerTier"/> 17은 Lv.10까지 약 539판이고,
-        /// 판당 2분 기준으로 약 18시간이다(측정 근거는 docs/Difficulty.md 4장).
+        /// <see cref="WinsPerTier"/> 21은 Lv.10까지 약 451판이고,
+        /// 판당 2분 기준으로 약 15시간이다(연승 보너스 50% 반영, 근거는 docs/Difficulty.md 6장).
         /// </summary>
         public static DifficultyCurve Default
             => new DifficultyCurve(baseWinPoints: 20d, growth: 1.35d, loseRatio: 0.45d,
-                winsPerTier: 17d, pointRoundTo: 10, unlockRoundTo: 100);
+                winsPerTier: 21d, pointRoundTo: 10, unlockRoundTo: 100, streakBonusRatio: 0.5d);
 
         /// <summary>
         /// 인스펙터에서 읽은 float 값으로 곡선을 만든다.
@@ -79,9 +86,10 @@ namespace DiceBattle.Core
         /// 달라진다. 폴백이 걸린 순간 조용히 밸런스가 바뀌는 셈이라 반드시 막아야 한다.
         /// </summary>
         public static DifficultyCurve FromSingle(float baseWinPoints, float growth,
-            float loseRatio, float winsPerTier, int pointRoundTo, int unlockRoundTo)
+            float loseRatio, float winsPerTier, int pointRoundTo, int unlockRoundTo,
+            float streakBonusRatio = 0f)
             => new DifficultyCurve(Widen(baseWinPoints), Widen(growth), Widen(loseRatio),
-                Widen(winsPerTier), pointRoundTo, unlockRoundTo);
+                Widen(winsPerTier), pointRoundTo, unlockRoundTo, Widen(streakBonusRatio));
 
         /// <summary>float에 담긴 소수를 사람이 적은 값으로 복원한다.</summary>
         private static double Widen(float value)
@@ -109,7 +117,14 @@ namespace DiceBattle.Core
                 // 두 숫자의 비율이 의도한 LoseRatio와 어긋나 보인다.
                 int losePoints = Round(winPoints * LoseRatio, PointRoundTo);
 
-                tiers[i] = new DifficultyTier(level, unlock, winPoints, losePoints);
+                // 연승 보너스도 같은 이유로 반올림된 승점에서 뽑는다.
+                // 0이면(비율 미설정) 보너스 자체를 만들지 않는다 — Round는 0을 최소 단위로
+                // 올려 버리므로, 그대로 두면 "보너스 없음"이 "보너스 최소 10점"이 된다.
+                int streakBonus = StreakBonusRatio <= 0
+                    ? 0
+                    : Round(winPoints * StreakBonusRatio, PointRoundTo);
+
+                tiers[i] = new DifficultyTier(level, unlock, winPoints, losePoints, streakBonus);
 
                 // 다음 단계 해금선은 "이 단계에서 WinsPerTier판을 이긴 만큼" 더 간다.
                 // 승리 점수가 커지는 만큼 간격도 같이 커져서 누진 증가가 된다.

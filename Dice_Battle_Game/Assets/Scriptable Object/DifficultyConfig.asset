@@ -47,6 +47,7 @@ MonoBehaviour:
     baseWinPoints: 20
     growth: 1.35
     loseRatio: 0.45
-    winsPerTier: 17
+    winsPerTier: 21
     pointRoundTo: 10
     unlockRoundTo: 100
+    streakBonusRatio: 0.5

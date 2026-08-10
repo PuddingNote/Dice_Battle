@@ -34,7 +34,8 @@ namespace DiceBattle.Core
             {
                 int level = MinLevel + i;
                 var t = tiers[i];
-                _tiers[i] = new DifficultyTier(level, t.UnlockScore, t.WinPoints, t.LosePoints);
+                _tiers[i] = new DifficultyTier(
+                    level, t.UnlockScore, t.WinPoints, t.LosePoints, t.StreakBonusPoints);
             }
 
             // Lv1은 시작부터 열려 있어야 한다. 아니면 아무 난이도도 못 고르는 상태가 된다.
@@ -100,8 +101,11 @@ namespace DiceBattle.Core
         /// 그 판을 <b>시작할 때 고정된</b> 난이도. 판 도중에 바뀌지 않으므로,
         /// 결과를 반영할 때도 시작 시점의 값을 그대로 넣어야 한다.
         /// </param>
+        /// <param name="priorStreak">
+        /// 이 판을 시작하기 전까지의 연승 수(<see cref="RankSystem.DeltaFor"/> 참고).
+        /// </param>
         public ProgressUpdate ApplyMatch(int score, int highestScore, int playedLevel,
-            PlayerMatchResult result)
+            PlayerMatchResult result, int priorStreak = 0)
         {
             // 저장된 최고 점수가 현재 점수보다 낮으면(구버전 데이터 이관 직후나 손상)
             // 현재 점수까지 끌어올린다. 그러지 않으면 이미 도달한 해금이 사라진다.
@@ -109,7 +113,7 @@ namespace DiceBattle.Core
 
             int before = MaxUnlockedLevel(highest);
 
-            int next = RankSystem.ApplyResult(score, result, this[playedLevel]);
+            int next = RankSystem.ApplyResult(score, result, this[playedLevel], priorStreak);
             if (next > highest) highest = next;
 
             return new ProgressUpdate(next, highest, next - score, before, MaxUnlockedLevel(highest));

@@ -21,25 +21,25 @@ MonoBehaviour:
     smartExtra: 0.08
   - playBest: 0.1
     playWorst: 0.22
-    smartExtra: 0.14
+    smartExtra: 0.16
   - playBest: 0.15
     playWorst: 0.1
-    smartExtra: 0.2
+    smartExtra: 0.26
   - playBest: 0.22
     playWorst: 0
-    smartExtra: 0.28
+    smartExtra: 0.4
   - playBest: 0.35
     playWorst: 0
-    smartExtra: 0.4
+    smartExtra: 0.58
   - playBest: 0.49
     playWorst: 0
-    smartExtra: 0.53
+    smartExtra: 0.74
   - playBest: 0.64
     playWorst: 0
-    smartExtra: 0.68
+    smartExtra: 0.88
   - playBest: 0.82
     playWorst: 0
-    smartExtra: 0.84
+    smartExtra: 0.96
   - playBest: 1
     playWorst: 0
     smartExtra: 1

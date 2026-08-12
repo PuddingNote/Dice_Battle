@@ -82,8 +82,14 @@ namespace DiceBattle.AI
         private static readonly double[] PlayWorstByLevel =
         { 0.46, 0.34, 0.22, 0.10, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00 };
 
+        // 2026-08-11: Lv5~9 구간을 큰 폭으로 올렸다(0.28~0.84 → 0.40~0.96). 추가(특수)
+        // 배치의 "완전 무작위" 갈래에 걸리면 확률·소유자 무관하게 아무 칸이나 골라, 낮은
+        // 눈을 자기 필드에 두고 높은 눈을 상대에게 내주는 것처럼 보이는 수가 나온다.
+        // 기본 배치 실수(playWorst)와 달리 이건 "특수 주사위 그 자체를 상대에게 헌납"하는
+        // 모양이라 유독 눈에 띄고, 심지어 Lv9(구 16%)에서도 자주 체감됐다. docs/Difficulty.md
+        // 2-1장에 재측정한 승률과 근거가 있다.
         private static readonly double[] SmartExtraByLevel =
-        { 0.04, 0.08, 0.14, 0.20, 0.28, 0.40, 0.53, 0.68, 0.84, 1.00 };
+        { 0.04, 0.08, 0.16, 0.26, 0.40, 0.58, 0.74, 0.88, 0.96, 1.00 };
 
         public static double DefaultPlayBest(int lvl) => PlayBestByLevel[IndexOf(lvl)];
         public static double DefaultPlayWorst(int lvl) => PlayWorstByLevel[IndexOf(lvl)];

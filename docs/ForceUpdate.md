@@ -30,13 +30,23 @@ AppVersion (Core)          "0.10.0" > "0.9.9" 를 보장하는 숫자 비교
 | `Assets/Scripts/Core/AppVersion.cs` | 버전 문자열 비교(순수 C#, 테스트 6건) |
 | `Assets/Scripts/UI/VersionGate.cs` | 원격 조회·판정. **URL이 여기 상수로 박혀 있다** |
 | `Assets/Scripts/UI/UpdateRequiredView.cs` | 차단 창 UI |
-| `version.json` (저장소 루트) | 운영 중 실제로 바꾸는 파일 |
+| `version.json` | 운영 중 실제로 바꾸는 파일. **2026-08-11부터 이 저장소가 아니라 `PuddingNote.github.io/dicebattle/version.json`을 고친다** — 아래 참고 |
 
 읽는 주소:
 
 ```
-https://raw.githubusercontent.com/PuddingNote/Dice_Battle/master/version.json
+https://puddingnote.github.io/dicebattle/version.json
 ```
+
+**2026-08-11: 저장소를 옮겼다.** 게임 저장소들을 이후 private으로 바꿀 예정이라,
+개인정보처리방침과 함께 별도의 공개 저장소(`PuddingNote.github.io`, 게임별 폴더)로
+`version.json`을 옮겼다. 예전 주소
+(`raw.githubusercontent.com/PuddingNote/Dice_Battle/master/version.json`)는
+**이 URL로 바뀐 새 빌드가 Play에 충분히 퍼질 때까지 지우면 안 된다** — 그 전에
+지우면 아직 구버전을 쓰는 사용자의 강제 업데이트 확인이 조용히 무력화된다
+(fail-open 설계라 게임이 막히진 않지만, 확인 자체가 안 된다). 이 저장소의
+`version.json`(루트)과 `docs/privacy-policy.html`은 안전하다고 판단되면 삭제
+예정 — 그때까지는 남겨 둔다.
 
 ### version.json 형식
 

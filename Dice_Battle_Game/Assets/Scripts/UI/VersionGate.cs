@@ -19,12 +19,21 @@ namespace DiceBattle.UI
     public sealed class VersionGate : MonoBehaviour
     {
         /// <summary>
-        /// 버전 정보 파일. 게임 저장소(public)의 master 브랜치에 둔다.
-        /// raw.githubusercontent는 5분 정도 CDN 캐시가 있으나,
-        /// minVersion은 새 빌드가 Play에 완전히 배포된 뒤에 올리므로 문제가 되지 않는다.
+        /// 버전 정보 파일. 게임별 저장소가 아니라 별도의 공개 GitHub Pages 저장소
+        /// (PuddingNote.github.io)의 게임 이름 폴더에 둔다 — 개인정보처리방침과 함께
+        /// 이쪽으로 옮겼다(2026-08-11). 게임 저장소 자체는 이후 private으로 바뀔 예정이라,
+        /// 강제 업데이트 확인 파일만 별도의 공개 저장소에 남겨 둔다.
+        ///
+        /// GitHub Pages도 CDN 캐시가 있으나, minVersion은 새 빌드가 Play에 완전히
+        /// 배포된 뒤에 올리므로 문제가 되지 않는다.
+        ///
+        /// <b>주의</b>: 이 URL은 빌드 시점에 앱 안에 그대로 박힌다. 이미 설치된 구버전은
+        /// 옛 주소(raw.githubusercontent.com/PuddingNote/Dice_Battle/master/version.json)를
+        /// 계속 본다 — 그 주소를 지우는 건 이 URL로 바뀐 빌드가 충분히 퍼진 뒤여야 한다
+        /// (fail-open이라 크래시는 안 나지만, 구버전의 강제 업데이트 체크가 조용히 무력화된다).
         /// </summary>
         private const string ConfigUrl =
-            "https://raw.githubusercontent.com/PuddingNote/Dice_Battle/master/version.json";
+            "https://puddingnote.github.io/dicebattle/version.json";
 
         /// <summary>응답 대기 한도(초). 넘기면 통과시킨다.</summary>
         private const int TimeoutSeconds = 5;

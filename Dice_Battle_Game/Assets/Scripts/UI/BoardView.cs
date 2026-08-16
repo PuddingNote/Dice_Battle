@@ -618,18 +618,14 @@ namespace DiceBattle.UI
             else if (outcome.Winner == _humanId) headline = "승리!";
             else headline = "패배";
 
-            string lines = "";
-            for (int i = 0; i < outcome.Lines.Count; i++)
-            {
-                string r = outcome.Lines[i] == LineResult.Draw ? "무"
-                    : (LineResultToPlayer(outcome.Lines[i]) == _humanId ? "승" : "패");
-                lines += $"라인 {i + 1}: {r}\n";
-            }
-
-            // 머리말과 라인 목록은 보호권을 써도 그대로다. 뒤의 점수 줄만 갈아 끼울 수
-            // 있도록 따로 들고 있는다. 점수 줄 안에 해금 문구가 붙어 줄바꿈이 늘어날 수
-            // 있어서, 완성된 문자열을 나중에 잘라 내려 하면 엉뚱한 곳이 잘린다.
-            _resultHead = $"{headline}\n\n{lines}\n";
+            // 머리말은 보호권을 써도 그대로다. 뒤의 점수 줄만 갈아 끼울 수 있도록
+            // 따로 들고 있는다. 점수 줄 안에 해금 문구가 붙어 줄바꿈이 늘어날 수 있어서,
+            // 완성된 문자열을 나중에 잘라 내려 하면 엉뚱한 곳이 잘린다.
+            // 라인별 승패는 보드에 이미 승자 도장으로 표시되므로 여기서 텍스트로 다시
+            // 안 적는다(중복이라 뺐다). 줄바꿈을 넉넉히 둬 헤드라인은 위로, 점수/코인
+            // 줄은 아래로 벌어지게 한다(텍스트 박스가 세로 가운데 정렬이라, 사이 간격을
+            // 늘리면 양 끝이 각자 위/아래로 밀린다).
+            _resultHead = $"{headline}\n\n\n\n";
             _resultText.text = _resultHead + scoreLine;
 
             SetExtraOffer(false); // 지난 판의 버튼이 남아 있지 않게
@@ -675,9 +671,6 @@ namespace DiceBattle.UI
 
             _protectButton.gameObject.SetActive(visible);
         }
-
-        private static PlayerId LineResultToPlayer(LineResult r)
-            => r == LineResult.PlayerOne ? PlayerId.One : PlayerId.Two;
 
         public void HideResult() => _resultOverlay.SetActive(false);
     }
